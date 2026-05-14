@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Check if the user is a super admin
+    function isSuperAdmin() {
+      return request.auth != null && (request.auth.token.email == 'vinh.ngtienmdb@gmail.com' || request.auth.token.email == 'admin@admin.com');
+    }
+
+    // Check if the user is an admin in the users collection or a super admin
+    function isAdmin() {
+      return isSuperAdmin() || (request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    match /configs/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow update: if isSuperAdmin() || isAdmin();
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+  }
+}

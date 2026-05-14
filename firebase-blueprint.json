@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "Config": {
+      "title": "Application Configuration",
+      "description": "System-wide payout rates and limits",
+      "type": "object",
+      "properties": {
+        "a_max_tgd": { "type": "number" },
+        "a_max_gd": { "type": "number" },
+        "a_max_ql": { "type": "number" },
+        "a_max_nv": { "type": "number" },
+        "a_max_direct": { "type": "number" },
+        "a_max_indirect": { "type": "number" },
+        "p_b_rate1": { "type": "number" },
+        "p_b_rate2": { "type": "number" },
+        "p_b_rate3": { "type": "number" },
+        "p_b_rate4": { "type": "number" },
+        "p_b_rate5": { "type": "number" },
+        "p_b_rate6": { "type": "number" },
+        "p_b_rate7": { "type": "number" }
+      },
+      "required": [
+        "a_max_tgd",
+        "a_max_gd",
+        "a_max_ql",
+        "a_max_nv",
+        "a_max_direct",
+        "a_max_indirect",
+        "p_b_rate1",
+        "p_b_rate2",
+        "p_b_rate3",
+        "p_b_rate4",
+        "p_b_rate5",
+        "p_b_rate6",
+        "p_b_rate7"
+      ]
+    }
+  },
+  "firestore": {
+    "/configs/{configId}": {
+      "schema": "Config",
+      "description": "Global configuration documents"
+    }
+  }
+}

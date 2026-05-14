@@ -1,0 +1,8 @@
+{
+  "name": "Lucky Shop Analytics",
+  "description": "Financial analytics dashboard for Lucky Shop, featuring daily lixi projections and ROI calculations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

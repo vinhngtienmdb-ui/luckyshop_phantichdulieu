@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Shop - Financial Analytics Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK will be loaded as module in app.js -->
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="icon">📈</span>
+                <h1>Lucky Shop Analytics</h1>
+            </div>
+            <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
+                <button id="btn_login" style="cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #2563eb; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
+                    🔐 Đăng nhập
+                </button>
+                <div id="user_info" style="display: none; color: #444; font-weight: 500;"></div>
+                <button id="btn_user_mgmt" style="display: none; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #8b5cf6; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
+                    👥 Quản lý User
+                </button>
+                <button id="btn_logout" style="display: none; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #ef4444; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
+                    👋 Đăng xuất
+                </button>
+                <input type="checkbox" id="admin_mode_toggle" style="display: none;">
+                <div><span class="status-indicator"></span> Live Projection Mode</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-grid">
+            
+            <!-- Section 1: Inputs & Parameters -->
+            <section class="top-row">
+                <!-- Card A: Thông số đầu vào -->
+                <div class="card param-card card-a">
+                    <h2 class="card-title">⚙️ Thông Số Đầu Vào</h2>
+                    <div class="input-list">
+                        <div class="input-group">
+                            <label>Giá sản phẩm</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="p_price" value="4.000.000">
+                                <span class="unit">VNĐ</span>
+                            </div>
+                        </div>
+                        <div class="calc-group">
+                            <label>Giá gom bao nhóm</label>
+                            <div class="calc-val"><span id="c_groupPrice">0</span> <span class="unit">VNĐ</span></div>
+                        </div>
+                        <div class="input-group">
+                            <label>Số lượt</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="p_turns" value="20">
+                                <span class="unit">lượt</span>
+                            </div>
+                        </div>
+                        <div class="calc-group">
+                            <label>Giá 1 sản phẩm</label>
+                            <div class="calc-val"><span id="c_unitPrice">0</span> <span class="unit">VNĐ</span></div>
+                        </div>
+                        <div class="calc-group">
+                            <label>Phiếu khấu trừ</label>
+                            <div class="calc-val text-primary"><span id="c_deduction">0</span> <span class="unit">VNĐ</span></div>
+                        </div>
+                        <div class="calc-group highlight-box">
+                            <label>Tổng tiền bỏ ra</label>
+                            <div class="calc-val text-danger fw-bold"><span id="c_totalInvest">0</span> <span class="unit">VNĐ</span></div>
+                        </div>
+                        <!-- Resell Rate and New Tickets inputs replaced by Radio choice -->
+                        <div class="input-group mt-2">
+                            <label style="display: block; font-weight: 500; margin-bottom: 5px;">Tùy chọn sản phẩm</label>
+                            <div style="display: flex; gap: 20px; align-items: center; padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;">
+                                    <input type="radio" name="p_productChoice" id="p_choice_take" value="take"> Lấy sản phẩm
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;">
+                                    <input type="radio" name="p_productChoice" id="p_choice_resell" value="resell" checked> Bán lại sản phẩm
+                                </label>
+                            </div>
+                        </div>
+                        <div class="calc-group highlight-box bg-gold mt-2">
+                            <label>Số dư lì xì ban đầu</label>
+                            <div class="calc-val text-gold fw-bold"><span id="c_luckyBalance">0</span> <span class="unit">VNĐ</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card B: Hoa Hồng & Phân Phối -->
+                <div class="card param-card card-b">
+                    <h2 class="card-title">🎁 Tỷ Lệ Hoa Hồng</h2>
+                    <div class="commission-list">
+                        <div class="comm-header">
+                            <span>Loại Hoa Hồng</span>
+                            <span>Tỷ Lệ (%)</span>
+                            <span>Số Tiền (VNĐ)</span>
+                        </div>
+                        <div class="comm-item" style="display: none;">
+                            <div class="comm-label">HH tự tham gia</div>
+                            <div class="comm-input admin-input-only"><input type="number" id="p_b_rate1" value="0"></div>
+                            <div class="user-display-only text-primary fw-bold" id="d_b_rate1" style="display:none; flex: 1; text-align: center;">0%</div>
+                            <div class="comm-val" id="b_amt1">0</div>
+                        </div>
+
+                        <div style="font-weight: 600; font-size: 0.95rem; color: #555; padding-bottom: 5px; border-bottom: 1px dashed #eee; margin-bottom: 10px; margin-top: 5px;">Hoa Hồng Phân Phối</div>
+                        
+                        <div class="comm-item">
+                            <div class="comm-label">HH trực tiếp</div>
+                            <div class="comm-input admin-input-only"><input type="number" id="p_b_rate2" value="10"></div>
+                            <div class="user-display-only text-primary fw-bold" id="d_b_rate2" style="display:none; flex: 1; text-align: center;">0%</div>
+                            <div class="comm-val" id="b_amt2">0</div>
+                        </div>
+                        <div class="comm-item">
+                            <div class="comm-label">HH gián tiếp</div>
+                            <div class="comm-input admin-input-only"><input type="number" id="p_b_rate3" value="5"></div>
+                            <div class="user-display-only text-primary fw-bold" id="d_b_rate3" style="display:none; flex: 1; text-align: center;">0%</div>
+                            <div class="comm-val" id="b_amt3">0</div>
+                        </div>
+
+                        <div style="font-weight: 600; font-size: 0.95rem; color: #555; padding-bottom: 5px; border-bottom: 1px dashed #eee; margin-bottom: 10px; margin-top: 15px;">Hoa Hồng Cấp Bậc</div>
+                        
+                        <div class="comm-item">
+                            <div class="comm-label">HH nhân viên</div>
+                            <div class="comm-input admin-input-only"><input type="number" id="p_b_rate4" value="0"></div>
+                            <div class="user-display-only text-primary fw-bold" id="d_b_rate4" style="display:none; flex: 1; text-align: center;">0%</div>
+                            <div class="comm-val" id="b_amt4">0</div>
+                        </div>
+                        <div class="comm-item">
+                            <div class="comm-label">HH quản lý</div>
+                            <div class="comm-input admin-input-only"><input type="number" id="p_b_rate5" value="0"></div>
+                            <div class="user-display-only text-primary fw-bold" id="d_b_rate5" style="display:none; flex: 1; text-align: center;">0%</div>
+                            <div class="comm-val" id="b_amt5">0</div>
+                        </div>
+                        <div class="comm-item">
+                            <div class="comm-label">HH giám đốc</div>
+                            <div class="comm-input admin-input-only"><input type="number" id="p_b_rate6" value="15"></div>
+                            <div class="user-display-only text-primary fw-bold" id="d_b_rate6" style="display:none; flex: 1; text-align: center;">0%</div>
+                            <div class="comm-val" id="b_amt6">0</div>
+                        </div>
+                        <div class="comm-item">
+                            <div class="comm-label">HH tổng giám đốc</div>
+                            <div class="comm-input admin-input-only"><input type="number" id="p_b_rate7" value="0"></div>
+                            <div class="user-display-only text-primary fw-bold" id="d_b_rate7" style="display:none; flex: 1; text-align: center;">0%</div>
+                            <div class="comm-val" id="b_amt7">0</div>
+                        </div>
+                        <div class="comm-summary total-hh">
+                            <div>Tổng HH & Lương</div>
+                            <div class="fw-bold text-gold" id="b_totalHH">0</div>
+                        </div>
+                        <div class="comm-summary">
+                            <div>Bán lại sản phẩm (<span id="b_resellRate">0%</span>)</div>
+                            <div id="b_resellAmt">0</div>
+                        </div>
+                        <div class="comm-summary">
+                            <div>Gốc hoàn về (Bao nhóm)</div>
+                            <div id="b_capitalReturned">0</div>
+                        </div>
+                        <div class="comm-summary total-instant">
+                            <div>Tổng Hoàn Ngay Lập Tức</div>
+                            <div class="fw-bold text-success" id="b_instantTotal">0</div>
+                        </div>
+                        <div class="comm-summary need-cover">
+                            <div>Phần Cần Bù (Lì xì)</div>
+                            <div class="fw-bold text-primary" id="b_needToCover">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New User Setup Card -->
+                <div class="card param-card user-only-card">
+                    <h2 class="card-title">👤 Vai Trò & Tuyến Dưới</h2>
+                    <p class="subtitle-note">Hệ thống sẽ tự tính hoa hồng dựa trên vai trò của bạn</p>
+                    <div class="input-list">
+                        <!-- Nguồn đơn hàng removed -->
+                        <div class="input-group mt-2">
+                            <label style="font-weight: 500; margin-bottom: 5px; display: block; color: #555;">Cấp bậc của BẠN</label>
+                            <select id="u_rank" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 0.95rem; background-color: #fff; color: #333; outline: none;">
+                                <option value="tgd">Tổng Giám đốc</option>
+                                <option value="gd" selected>Giám đốc</option>
+                                <option value="ql">Quản lý</option>
+                                <option value="nv">Nhân viên</option>
+                                <option value="kh">Khách hàng (0%)</option>
+                            </select>
+                        </div>
+                        <div class="mt-2" id="u_sub_container" style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #d4af37;">Tuyến dưới xen giữa (Tính HH chênh lệch):</label>
+                            <div style="font-size: 0.85em; margin-bottom: 12px; color: #777;">Đánh dấu nếu có thành viên cấp dưới xen giữa bạn và đơn hàng.</div>
+                            <div id="u_chk_gd" class="input-group" style="margin-bottom: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;"><input type="checkbox" id="u_sub_gd" style="width: 16px; height: 16px;"> Có Giám đốc tham gia</label>
+                            </div>
+                            <div id="u_chk_ql" class="input-group" style="margin-bottom: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;"><input type="checkbox" id="u_sub_ql" style="width: 16px; height: 16px;"> Có Quản lý tham gia</label>
+                            </div>
+                            <div id="u_chk_nv" class="input-group" style="margin-bottom: 5px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;"><input type="checkbox" id="u_sub_nv" style="width: 16px; height: 16px;"> Có Nhân viên tham gia</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Config Card (Hidden by default) -->
+                <div class="card param-card admin-only-card" style="display: none;">
+                    <h2 class="card-title">⚙️ Cấu Hình Hệ Thống</h2>
+                    <p class="subtitle-note">Chỉ Admin được chỉnh sửa các thông số này</p>
+                    <div class="input-list">
+                        <div class="input-group">
+                            <label>Tỷ lệ lì xì / ngày</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="p_dailyLuckyRate" value="0.12" step="0.01">
+                                <span class="unit">%</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Hệ số số dư lì xì</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="p_luckyMul" value="5.5" step="0.1">
+                                <span class="unit">lần</span>
+                            </div>
+                        </div>
+                        <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #ffd700;">Mức Max Hoa Hồng Cấp Bậc (%)</h3>
+                        <div class="input-group">
+                            <label>Mức max Nhân viên</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="a_max_nv" value="5">
+                                <span class="unit">%</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Mức max Quản lý</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="a_max_ql" value="10">
+                                <span class="unit">%</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Mức max Giám đốc</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="a_max_gd" value="15">
+                                <span class="unit">%</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Mức max Tổng GĐ</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="a_max_tgd" value="20">
+                                <span class="unit">%</span>
+                            </div>
+                        </div>
+                        <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #4CAF50;">Mức Max Hoa Hồng Phân Phối (%)</h3>
+                        <div class="input-group">
+                            <label>Mức max Trực tiếp</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="a_max_direct" value="10">
+                                <span class="unit">%</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Mức max Gián tiếp</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="a_max_indirect" value="5">
+                                <span class="unit">%</span>
+                            </div>
+                        </div>
+                        <button id="btn_save_config" style="width: 100%; padding: 10px; background: #10b981; color: white; border: none; border-radius: 5px; font-weight: 600; margin-top: 20px; cursor: pointer;">
+                            💾 Lưu Cấu Hình Lên Hệ Thống
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Dashboard Overview Cards -->
+            <div class="section-divider">
+                <h2>Phân Tích Điểm Hòa Vốn</h2>
+                <p>Tổng quan tài chính & Các chỉ số cốt lõi</p>
+            </div>
+
+            <section class="overview-cards">
+                <div class="dash-card danger">
+                    <div class="icon">💰</div>
+                    <div class="content">
+                        <h3>Tổng Vốn Bỏ Ra</h3>
+                        <div class="value" id="d_totalInvest">0 đ</div>
+                        <div class="note">Giá gom + Phiếu KT</div>
+                    </div>
+                </div>
+                <div class="dash-card success">
+                    <div class="icon">📦</div>
+                    <div class="content">
+                        <h3>Thu Về Bán Lại SP</h3>
+                        <div class="value" id="d_resellReturn">0 đ</div>
+                        <div class="note">Trích từ giá gốc</div>
+                    </div>
+                </div>
+                <div class="dash-card warning">
+                    <div class="icon">🎁</div>
+                    <div class="content">
+                        <h3>Tổng HH & Hoàn Về</h3>
+                        <div class="value" id="d_totalHH">0 đ</div>
+                        <div class="note">Hoa hồng phát sinh lập tức</div>
+                    </div>
+                </div>
+                <div class="dash-card primary">
+                    <div class="icon">⚖️</div>
+                    <div class="content">
+                        <h3>Phần Cần Bù Lì Xì</h3>
+                        <div class="value" id="d_needToCover">0 đ</div>
+                        <div class="note">Phần còn lại sau thu hồi</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Break-even Banner + 4 Stats -->
+            <div class="breakeven-banner">
+                <h4>🔥 ƯỚC TÍNH ĐIỂM HÒA VỐN</h4>
+                <div class="breakeven-value" id="s_linearDays">0 ngày</div>
+                <div class="breakeven-sub">Tuyến tính (gần đúng)</div>
+            </div>
+
+            <section class="stats-cards-grid">
+                <div class="stat-card highlight-gold">
+                    <h4>Số Dư Lì Xì Ban Đầu</h4>
+                    <div class="val text-gold" id="s_initialBal">0 đ</div>
+                    <div class="sub">Phiếu KT × Hệ số</div>
+                </div>
+                <div class="stat-card highlight-primary">
+                    <h4>Lì Xì Phát Sinh Mỗi Ngày</h4>
+                    <div class="val text-primary" id="s_dailyLixi1">0 đ</div>
+                    <div class="sub">Tại ngày 1</div>
+                </div>
+                <div class="stat-card highlight-success">
+                    <h4>Tổng Lì Xì Tích Lũy (1 Năm)</h4>
+                    <div class="val text-success" id="s_accLixi">0 đ</div>
+                    <div class="sub">Cộng dồn 365 ngày</div>
+                </div>
+                <div class="stat-card highlight-purple">
+                    <h4>Lợi Nhuận Ròng (ROI)</h4>
+                    <div class="val text-purple" id="s_roi">0.0%</div>
+                    <div class="sub">Sau 365 ngày</div>
+                </div>
+            </section>
+
+            <!-- Section 4: 365 Days Projection -->
+            <section class="projection-table-section">
+                <div class="table-header">
+                    <h3>📅 Lịch Trình Tích Lũy Dòng Tiền (365 Ngày)</h3>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Số Dư Đầu Ngày</th>
+                                <th>Lì Xì Phát Sinh</th>
+                                <!-- Removed Phiếu Sử Dụng & Hoa Hồng Sinh Ra -->
+                                <th>Tiền Mặt Tích Lũy</th>
+                                <th>Số Dư Cuối Ngày</th>
+                                <th>Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="timelineBody">
+                            <!-- JS Inject -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="login_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+       <div style="background: white; padding: 30px; border-radius: 10px; width: 300px; color: black; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+           <h3 style="margin-bottom: 15px; text-align: center;">Đăng nhập</h3>
+           <button id="btn_do_login_google" style="width: 100%; padding: 10px; background: #db4437; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+               <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/></svg>
+               Đăng nhập bằng Google
+           </button>
+           <div style="text-align: center; margin-bottom: 10px; color: #666; font-size: 0.85rem;">hoặc</div>
+           <input type="email" id="login_email" placeholder="Email" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit;">
+           <input type="password" id="login_pwd" placeholder="Mật khẩu" style="width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit;">
+           <button id="btn_do_login_email" style="width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Đăng nhập / Đăng ký</button>
+           <button id="btn_close_login" style="width: 100%; padding: 10px; background: #e5e7eb; color: #374151; border: none; border-radius: 5px; font-weight: bold; margin-top: 10px; cursor: pointer;">Hủy</button>
+           <div id="login_error" style="color: red; font-size: 0.8rem; margin-top: 10px; text-align: center; display: none;"></div>
+       </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="user_mgmt_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+       <div style="background: white; padding: 30px; border-radius: 10px; width: 600px; max-width: 90vw; max-height: 80vh; color: black; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
+           <h3 style="margin-bottom: 20px; text-align: center; font-size: 1.25rem;">Quản Lý Người Dùng & Phân Quyền</h3>
+           <div style="overflow-y: auto; flex: 1; border: 1px solid #ddd; border-radius: 8px;">
+               <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                   <thead style="background: #f8f9fa;">
+                       <tr>
+                           <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left;">Email</th>
+                           <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left;">Tên</th>
+                           <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">Quyền Quản Trị</th>
+                       </tr>
+                   </thead>
+                   <tbody id="user_mgmt_table_body">
+                       <!-- Users injected here -->
+                   </tbody>
+               </table>
+           </div>
+           <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+               <button id="btn_close_user_mgmt" style="padding: 8px 20px; background: #e5e7eb; color: #374151; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Đóng</button>
+           </div>
+       </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
