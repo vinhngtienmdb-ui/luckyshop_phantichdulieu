@@ -30,9 +30,9 @@ if (true) {
 
     const btnLogin = document.getElementById('btn_login');
     const btnLogout = document.getElementById('btn_logout');
-    const btnUserMgmt = document.getElementById('btn_user_mgmt');
-    const userMgmtModal = document.getElementById('user_mgmt_modal');
-    const btnCloseUserMgmt = document.getElementById('btn_close_user_mgmt');
+    const btnAdminPanel = document.getElementById('btn_admin_panel');
+    const adminModal = document.getElementById('admin_modal');
+    const btnCloseAdmin = document.getElementById('btn_close_admin');
     const userMgmtTableBody = document.getElementById('user_mgmt_table_body');
     const userInfoDisplay = document.getElementById('user_info');
     const loginModal = document.getElementById('login_modal');
@@ -55,18 +55,112 @@ if (true) {
         loginError.style.display = 'none';
     });
 
-    if (btnUserMgmt && userMgmtModal) {
-        btnUserMgmt.addEventListener('click', () => {
-            userMgmtModal.style.display = 'flex';
+    if (btnAdminPanel && adminModal) {
+        btnAdminPanel.addEventListener('click', () => {
+            adminModal.style.display = 'flex';
             loadUsersList();
+            
+            // Set first tab active by default
+            const adminTabs = document.querySelectorAll('.admin-tab');
+            const adminContents = document.querySelectorAll('.admin-content');
+            if (adminTabs.length > 0 && adminContents.length > 0) {
+                adminTabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.style.borderLeftColor = 'transparent';
+                    t.style.background = 'transparent';
+                });
+                adminContents.forEach(c => c.style.display = 'none');
+                
+                adminTabs[0].classList.add('active');
+                adminTabs[0].style.borderLeftColor = '#2563eb';
+                adminTabs[0].style.background = '#e2e8f0';
+                const targetId = adminTabs[0].getAttribute('data-target');
+                document.getElementById(targetId).style.display = 'block';
+            }
         });
-        if (btnCloseUserMgmt) {
-            btnCloseUserMgmt.addEventListener('click', () => {
-                userMgmtModal.style.display = 'none';
+        if (btnCloseAdmin) {
+            btnCloseAdmin.addEventListener('click', () => {
+                adminModal.style.display = 'none';
                 if (usersListUnsub) usersListUnsub();
             });
         }
     }
+
+    // Tabs logic
+    const adminTabsNode = document.querySelectorAll('.admin-tab');
+    const adminContentsNode = document.querySelectorAll('.admin-content');
+    adminTabsNode.forEach(tab => {
+        tab.addEventListener('click', () => {
+            adminTabsNode.forEach(t => {
+                t.classList.remove('active');
+                t.style.borderLeftColor = 'transparent';
+                t.style.background = 'transparent';
+            });
+            adminContentsNode.forEach(c => c.style.display = 'none');
+            
+            tab.classList.add('active');
+            tab.style.borderLeftColor = '#2563eb';
+            tab.style.background = '#e2e8f0';
+            const targetId = tab.getAttribute('data-target');
+            document.getElementById(targetId).style.display = 'flex';
+            if (targetId === 'admin_tab_config') {
+                document.getElementById(targetId).style.display = 'block';
+            }
+        });
+    });
+
+    const btnSaveRoles = document.getElementById('btn_save_roles');
+    if (btnSaveRoles) {
+        btnSaveRoles.addEventListener('click', () => {
+            if (!auth.currentUser || currentUserRole !== 'admin') return;
+            const rolesConf = {
+                tgd: document.getElementById('role_name_tgd').value || 'Tổng Giám đốc',
+                gd: document.getElementById('role_name_gd').value || 'Giám đốc',
+                ql: document.getElementById('role_name_ql').value || 'Quản lý',
+                nv: document.getElementById('role_name_nv').value || 'Nhân viên'
+            };
+            setDoc(doc(db, 'configs', 'roles'), rolesConf, { merge: true })
+                .then(() => showToast("Đã lưu tên chức danh mới!", "success"))
+                .catch(err => showToast("Lỗi lưu chức danh: " + err.message, "error"));
+        });
+    }
+
+    const userDefaultRankSelect = document.getElementById('user_default_rank');
+    if (userDefaultRankSelect) {
+        userDefaultRankSelect.addEventListener('change', (e) => {
+            if (auth.currentUser) {
+                updateDoc(doc(db, 'users', auth.currentUser.uid), { defaultRank: e.target.value })
+                    .then(() => showToast("Đã lưu chức danh mặc định!", "success"))
+                    .catch(err => showToast("Lỗi lưu chức danh: " + err.message, "error"));
+            }
+            
+            const u_rank = document.getElementById('u_rank');
+            if (u_rank) {
+                u_rank.value = e.target.value;
+                if (typeof updateSubordinateVisibility === 'function') updateSubordinateVisibility();
+                if (typeof calculate === 'function') calculate();
+            }
+        });
+    }
+
+    // Listen for roles config
+    onSnapshot(doc(db, 'configs', 'roles'), (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const setRoleName = (idUi, idLbl, idOpt, lblComm, idUdrOpt, val) => {
+                if (!val) return;
+                const ui = document.getElementById(idUi); if (ui) ui.value = val;
+                const lbl = document.getElementById(idLbl); if (lbl) lbl.innerText = val;
+                const opt = document.getElementById(idOpt); if (opt) opt.innerText = val;
+                const comm = document.getElementById(lblComm); if (comm) comm.innerText = 'HH ' + val.toLowerCase();
+                const optUdr = document.getElementById(idUdrOpt); if (optUdr) optUdr.innerText = val;
+            };
+            setRoleName('role_name_tgd', null, 'opt_tgd', 'lbl_hh_tgd', 'udr_opt_tgd', data.tgd);
+            setRoleName('role_name_gd', 'chk_lbl_gd', 'opt_gd', 'lbl_hh_gd', 'udr_opt_gd', data.gd);
+            setRoleName('role_name_ql', 'chk_lbl_ql', 'opt_ql', 'lbl_hh_ql', 'udr_opt_ql', data.ql);
+            setRoleName('role_name_nv', 'chk_lbl_nv', 'opt_nv', 'lbl_hh_nv', 'udr_opt_nv', data.nv);
+        }
+    });
 
     const loadUsersList = () => {
         if (!auth.currentUser || currentUserRole !== 'admin') return;
@@ -234,6 +328,17 @@ if (true) {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     currentUserRole = (user.email === 'vinh.ngtienmdb@gmail.com' || user.email === 'admin@admin.com') ? 'admin' : (data.role || 'user');
+                    
+                    const userDefaultRankSelect = document.getElementById('user_default_rank');
+                    if (data.defaultRank && userDefaultRankSelect && userDefaultRankSelect.value !== data.defaultRank) {
+                        userDefaultRankSelect.value = data.defaultRank;
+                        const u_rank = document.getElementById('u_rank');
+                        if (u_rank) {
+                            u_rank.value = data.defaultRank;
+                            if (typeof updateSubordinateVisibility === 'function') updateSubordinateVisibility();
+                            if (typeof calculate === 'function') calculate();
+                        }
+                    }
                 } else {
                     currentUserRole = (user.email === 'vinh.ngtienmdb@gmail.com' || user.email === 'admin@admin.com') ? 'admin' : 'user';
                 }
@@ -241,8 +346,11 @@ if (true) {
                 if (btnLogin) btnLogin.style.display = 'none';
                 if (btnLogout) btnLogout.style.display = 'flex';
                 
+                const udrContainer = document.getElementById('user_default_rank_container');
+                if (udrContainer) udrContainer.style.display = 'flex';
+                
                 if (currentUserRole === 'admin') {
-                    if (btnUserMgmt) btnUserMgmt.style.display = 'flex';
+                    if (btnAdminPanel) btnAdminPanel.style.display = 'flex';
                     if (userInfoDisplay) {
                         userInfoDisplay.style.display = 'block';
                         userInfoDisplay.innerText = (user.email === 'vinh.ngtienmdb@gmail.com' || user.email === 'admin@admin.com') ? "Trạng thái: Super Admin" : `Xin chào Admin: ${user.displayName || user.email}`;
@@ -252,7 +360,7 @@ if (true) {
                         if(typeof toggleAdminMode === 'function') toggleAdminMode();
                     }
                 } else {
-                    if (btnUserMgmt) btnUserMgmt.style.display = 'none';
+                    if (btnAdminPanel) btnAdminPanel.style.display = 'none';
                     if (userInfoDisplay) {
                         userInfoDisplay.style.display = 'block';
                         userInfoDisplay.innerText = `Xin chào: ${user.displayName || user.email}`;
@@ -268,8 +376,12 @@ if (true) {
             currentUserRole = 'user';
             if (btnLogin) btnLogin.style.display = 'flex';
             if (btnLogout) btnLogout.style.display = 'none';
-            if (btnUserMgmt) btnUserMgmt.style.display = 'none';
+            if (btnAdminPanel) btnAdminPanel.style.display = 'none';
             if (userInfoDisplay) userInfoDisplay.style.display = 'none';
+            
+            const udrContainer = document.getElementById('user_default_rank_container');
+            if (udrContainer) udrContainer.style.display = 'none';
+                
             if (adminToggle) {
                 adminToggle.checked = false;
                 if(typeof toggleAdminMode === 'function') toggleAdminMode();
@@ -414,9 +526,9 @@ const calculate = () => {
     const luckyMul = parseFloat(inputs.p_luckyMul.value) || 0;
     const newTickets = 0;
 
-    const isAdmin = inputs.admin_mode_toggle && inputs.admin_mode_toggle.checked;
+    const isAdmin = false;
 
-    if (!isAdmin && inputs.u_rank) {
+    if (inputs.u_rank) {
         // User Mode logic
         const rank = inputs.u_rank.value;
         
@@ -625,20 +737,18 @@ const updateSubordinateVisibility = () => {
 };
 
 const toggleAdminMode = () => {
-    if (!inputs.admin_mode_toggle) return;
-    const isAdmin = inputs.admin_mode_toggle.checked;
     const adminCards = document.querySelectorAll('.admin-only-card');
     const userCards = document.querySelectorAll('.user-only-card');
     
-    adminCards.forEach(c => c.style.display = isAdmin ? 'block' : 'none');
-    userCards.forEach(c => c.style.display = isAdmin ? 'none' : 'block');
+    adminCards.forEach(c => c.style.display = 'none');
+    userCards.forEach(c => c.style.display = 'block');
     
     // Toggle Card B inputs vs display spans
     const adminInputs = document.querySelectorAll('.admin-input-only');
     const userDisplays = document.querySelectorAll('.user-display-only');
     
-    adminInputs.forEach(el => el.style.display = isAdmin ? 'block' : 'none');
-    userDisplays.forEach(el => el.style.display = isAdmin ? 'none' : 'block');
+    adminInputs.forEach(el => el.style.display = 'none');
+    userDisplays.forEach(el => el.style.display = 'block');
     
     calculate();
 };
