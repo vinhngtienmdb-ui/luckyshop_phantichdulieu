@@ -1564,7 +1564,7 @@ const renderTracker = (defaultDate = "") => {
   let trHtml = "";
   for (let day = 1; day <= maxDay; day++) {
     const currentDate = new Date(startObj);
-    currentDate.setDate(startObj.getDate() + day - 1); // Note: Fix date offset if necessary
+    currentDate.setDate(startObj.getDate() + day); // Day 1 = startDate + 1 (tomorrow)
     const dStr = currentDate.getDate().toString().padStart(2, '0');
     const mStr = (currentDate.getMonth() + 1).toString().padStart(2, '0');
     const yStr = currentDate.getFullYear();
