@@ -1526,6 +1526,25 @@ const renderTracker = (defaultDate = "") => {
             </div>
         </div>
         
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">Thực Nhận (Cộng dồn)</div>
+                <div id="tk_summary_actual" style="font-size: 1.4rem; font-weight: bold; color: #10b981;">0 đ</div>
+            </div>
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">Còn Phải Bù</div>
+                <div id="tk_summary_remain" style="font-size: 1.4rem; font-weight: bold; color: #ef4444;">0 đ</div>
+            </div>
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">Tiến Độ Hòa Vốn</div>
+                <div id="tk_summary_progress" style="font-size: 1.4rem; font-weight: bold; color: #3b82f6;">0%</div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+            <canvas id="trackerChartCanvas" style="width: 100%; height: 300px; max-height: 300px;"></canvas>
+        </div>
+        
         <div class="table-container" style="max-height: 60vh; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px;">
             <table class="data-table" style="width: 100%; white-space: nowrap; font-size: 0.9rem;">
                 <thead>
@@ -1556,13 +1575,22 @@ const renderTracker = (defaultDate = "") => {
 
   let maxDay = 365;
   const existingDays = Object.keys(trackerProfile.actualLixi).map(Number);
+  const maxInputDay = existingDays.length > 0 ? Math.max(...existingDays) : 0;
   if (existingDays.length > 0) {
-    maxDay = Math.max(maxDay, Math.max(...existingDays) + 10);
+    maxDay = Math.max(maxDay, maxInputDay + 10);
   }
 
   const startObj = new Date(trackerProfile.startDate);
 
   let trHtml = "";
+  
+  // For Chart
+  let tkLabels = [];
+  let tkActualData = [];
+  let tkExpectedData = [];
+  let tkExpectedCash = 0;
+  let tempExpectedBalance = trackerProfile.luckyBalance;
+
   for (let day = 1; day <= maxDay; day++) {
     const currentDate = new Date(startObj);
     currentDate.setDate(startObj.getDate() + day); // Day 1 = startDate + 1 (tomorrow)
@@ -1579,6 +1607,20 @@ const renderTracker = (defaultDate = "") => {
 
     totalCash += genLixi;
     let endBalance = currBalance - genLixi;
+    
+    // Accumulate Expected
+    let thisExpectedLixi = tempExpectedBalance * trackerProfile.dailyLuckyRate;
+    tkExpectedCash += thisExpectedLixi;
+    tempExpectedBalance -= thisExpectedLixi;
+    
+    // Chart Data (Stop Actual line at maxInputDay + 1)
+    tkLabels.push(`Ngày ${day}`);
+    tkExpectedData.push(tkExpectedCash);
+    if (day <= Math.max(1, maxInputDay)) { // Show actual up to the max input day
+        tkActualData.push(totalCash);
+    } else {
+        tkActualData.push(null);
+    }
 
     let status = "";
     let rowClass = "";
@@ -1609,6 +1651,74 @@ const renderTracker = (defaultDate = "") => {
   }
 
   tbody.innerHTML = trHtml;
+  
+  // Update Summary Cards
+  const eSummaryActual = document.getElementById("tk_summary_actual");
+  const eSummaryRemain = document.getElementById("tk_summary_remain");
+  const eSummaryProgress = document.getElementById("tk_summary_progress");
+  if (eSummaryActual) {
+      eSummaryActual.innerText = t_formatVND(totalCash);
+      let remain = trackerProfile.needToCover - totalCash;
+      if (remain < 0) remain = 0;
+      eSummaryRemain.innerText = t_formatVND(remain);
+      
+      let progress = trackerProfile.needToCover > 0 ? (totalCash / trackerProfile.needToCover) * 100 : 100;
+      eSummaryProgress.innerText = progress.toFixed(1) + "%";
+  }
+  
+  // Render Chart
+  setTimeout(() => {
+      const ctxTk = document.getElementById("trackerChartCanvas");
+      if (ctxTk) {
+          if (window.trackerChartInstance) {
+              window.trackerChartInstance.destroy();
+          }
+          window.trackerChartInstance = new Chart(ctxTk, {
+            type: "line",
+            data: {
+              labels: tkLabels,
+              datasets: [
+                {
+                  label: "Thực nhận (Lũy kế)",
+                  data: tkActualData,
+                  borderColor: "#10b981",
+                  backgroundColor: "rgba(16, 185, 129, 0.2)",
+                  pointRadius: 2,
+                  fill: true,
+                  tension: 0.2,
+                  spanGaps: true
+                },
+                {
+                  label: "Dự kiến (Lũy kế)",
+                  data: tkExpectedData,
+                  borderColor: "#d1d5db",
+                  backgroundColor: "transparent",
+                  borderDash: [5, 5],
+                  pointRadius: 0,
+                  fill: false,
+                  tension: 0.2
+                },
+                {
+                  label: "Mục tiêu hòa vốn",
+                  data: Array(tkLabels.length).fill(trackerProfile.needToCover),
+                  borderColor: "#ef4444",
+                  borderWidth: 1,
+                  pointRadius: 0,
+                  fill: false,
+                  borderDash: [2, 2]
+                }
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: "index", intersect: false },
+              plugins: { tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ": " + t_formatVND(ctx.raw) } } },
+              scales: { y: { suggestedMin: 0, ticks: { callback: (val) => t_formatNumber(val) } } }
+            }
+          });
+      }
+  }, 50);
 
   const btnSave = document.getElementById("btn_save_tracker");
   if (btnSave) {
