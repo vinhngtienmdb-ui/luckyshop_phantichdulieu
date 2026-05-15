@@ -800,14 +800,28 @@ const calculate = () => {
           if (imagePromoModal) {
               const popupShown = sessionStorage.getItem("promo_popup_shown_v2");
               if (!popupShown || isPreview) {
-                  imagePromoModal.style.display = "flex";
+                  // remove classes first to re-trigger animations if already opened once
+                  imagePromoModal.classList.remove("active");
+                  const content = document.getElementById("image_promo_content");
+                  if (content) content.classList.remove("active");
+                  
+                  // Force reflow
+                  void imagePromoModal.offsetWidth;
+
+                  imagePromoModal.classList.add("active");
+                  if (content) content.classList.add("active");
+
                   sessionStorage.setItem("promo_popup_shown_v2", "1");
                   if (isPreview) window.isPromoPreviewActive = false; // Reset preview state after showing
               }
           }
       } else {
           if (banner) banner.style.display = "none";
-          if (imagePromoModal) imagePromoModal.style.display = "none";
+          if (imagePromoModal) {
+              imagePromoModal.classList.remove("active");
+              const content = document.getElementById("image_promo_content");
+              if (content) content.classList.remove("active");
+          }
       }
   }
 

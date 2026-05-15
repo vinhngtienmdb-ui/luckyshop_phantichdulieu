@@ -142,14 +142,47 @@ body {
 }
 
 @keyframes popIn {
-    0% { transform: scale(0.5) translateY(50px) rotate(-5deg); opacity: 0; }
-    60% { transform: scale(1.05) translateY(-10px) rotate(2deg); opacity: 1; }
-    80% { transform: scale(0.98) translateY(5px) rotate(-1deg); opacity: 1; }
+    0% { transform: scale(0.3) translateY(50px) rotate(-10deg); opacity: 0; }
+    50% { transform: scale(1.08) translateY(-10px) rotate(3deg); opacity: 1; }
+    70% { transform: scale(0.95) translateY(5px) rotate(-2deg); opacity: 1; }
     100% { transform: scale(1) translateY(0) rotate(0deg); opacity: 1; }
 }
 
+@keyframes fadeInOverlay {
+    from { opacity: 0; backdrop-filter: blur(0px); background: rgba(0,0,0,0); }
+    to { opacity: 1; backdrop-filter: blur(8px); background: rgba(0,0,0,0.8); }
+}
+
+.promo-modal-overlay.active {
+    display: flex !important;
+    animation: fadeInOverlay 0.5s ease-out forwards;
+}
+
+.promo-modal-content.active {
+    animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.promo-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140%;
+    height: 140%;
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.6) 0%, transparent 60%);
+    z-index: 0;
+    pointer-events: none;
+    animation: spinGlow 12s linear infinite;
+}
+
+@keyframes spinGlow {
+    0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+    50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.1); }
+    100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+}
+
 @keyframes fadeIn {
-    from { opacity: 0; backdrop-filter: blur(0px); }
+    from { opacity: 0; backdrop-filter: blur(0px); background: rgba(0,0,0,0); }
     to { opacity: 1; backdrop-filter: blur(8px); background: rgba(0,0,0,0.8); }
 }
 
