@@ -1488,6 +1488,7 @@ const renderTracker = (defaultDate = "") => {
           ${hasProfiles ? `
             <button id="btn_rename_profile" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Đổi tên</button>
             <button id="btn_delete_profile" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Xóa</button>
+            <button id="btn_export_profile" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Xuất CSV</button>
           ` : ''}
         </div>
       </div>
@@ -1508,7 +1509,7 @@ const renderTracker = (defaultDate = "") => {
   const trackerProfile = profiles[activeId];
 
   let html = profileHtml + `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 6px; border: 1px dashed #cbd5e1;">
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 6px; border: 1px dashed #cbd5e1;">
             <div>
                 <strong>Ngày bắt đầu:</strong> ${(() => {
                     const d = new Date(trackerProfile.startDate);
@@ -1525,7 +1526,7 @@ const renderTracker = (defaultDate = "") => {
             </div>
         </div>
         
-        <div class="table-container" style="max-height: 500px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px;">
+        <div class="table-container" style="max-height: 60vh; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px;">
             <table class="data-table" style="width: 100%; white-space: nowrap; font-size: 0.9rem;">
                 <thead>
                     <tr style="position: sticky; top: 0; background: #f8fafc; z-index: 10;">
@@ -1733,6 +1734,58 @@ const setupProfileListeners = () => {
                 saveTrackerData(profiles, nextId);
                 renderTracker();
             }
+        });
+    }
+
+    const btnExport = document.getElementById("btn_export_profile");
+    if (btnExport) {
+        btnExport.addEventListener("click", () => {
+            const { profiles, activeId } = loadTrackerData();
+            if (!activeId || !profiles[activeId]) return;
+            const profile = profiles[activeId];
+            
+            let csvContent = "Ngày,Ngày tháng,Số dư đầu ngày,Lì xì dự kiến,Lì xì thực nhận,Tổng tiền rút,Số dư cuối ngày,Trạng thái\n";
+            
+            let currBalance = profile.luckyBalance;
+            let totalCash = 0;
+            let maxDay = 365;
+            const existingDays = Object.keys(profile.actualLixi).map(Number);
+            if (existingDays.length > 0) {
+              maxDay = Math.max(maxDay, Math.max(...existingDays) + 10);
+            }
+            const startObj = new Date(profile.startDate);
+            for (let day = 1; day <= maxDay; day++) {
+                const curD = new Date(startObj);
+                curD.setDate(startObj.getDate() + day);
+                const dateStr = `${curD.getDate().toString().padStart(2, '0')}/${(curD.getMonth()+1).toString().padStart(2, '0')}/${curD.getFullYear()}`;
+                
+                const expectedLixi = currBalance * profile.dailyLuckyRate;
+                const actualInput = profile.actualLixi[day];
+                const isInputted = actualInput !== undefined && actualInput !== null;
+                let genLixi = isInputted ? parseFloat(actualInput) : 0;
+                
+                totalCash += genLixi;
+                let endBalance = currBalance - genLixi;
+                let status = "Đang chạy";
+                if (totalCash >= profile.needToCover) {
+                  status = "Lãi: " + Math.round(totalCash - profile.needToCover);
+                } else {
+                  status = "Cần bù: " + Math.round(profile.needToCover - totalCash);
+                }
+                
+                csvContent += `${day},${dateStr},${Math.round(currBalance)},${Math.round(expectedLixi)},${isInputted ? actualInput : 0},${Math.round(totalCash)},${Math.round(endBalance)},${status}\n`;
+                currBalance = endBalance;
+            }
+            
+            // Add BOM for Excel UTF-8 support
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${profile.name.replace(/\s+/g, '_')}_data.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
     }
 };

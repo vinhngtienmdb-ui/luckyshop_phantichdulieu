@@ -545,10 +545,12 @@ body {
 }
 @media (max-width: 768px) {
     .app-header { flex-direction: column; gap: 15px; text-align: center; }
-    .user-profile { flex-wrap: wrap; justify-content: center; }
+    .user-profile { flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .user-profile button { flex: 1 1 45%; justify-content: center; font-size: 0.85rem; padding: 8px !important; }
+    #user_default_rank_container { flex: 1 1 100%; justify-content: center; margin-top: 5px; }
     .top-row { grid-template-columns: 1fr; }
-    .overview-cards { grid-template-columns: 1fr; }
-    .stats-cards-grid { grid-template-columns: 1fr; }
+    .overview-cards { grid-template-columns: 1fr 1fr; }
+    .stats-cards-grid { grid-template-columns: 1fr 1fr; }
     .table-container { overflow-x: auto; max-width: 100vw; }
     .data-table th, .data-table td { padding: 8px 10px; font-size: 0.85rem; }
     .admin-content { padding: 10px !important; }
@@ -557,12 +559,29 @@ body {
     #admin_modal > div > div { flex-direction: column !important; }
     #admin_modal > div > div > div:first-child { width: 100% !important; flex-direction: row !important; border-right: none !important; border-bottom: 1px solid #e2e8f0; }
     .admin-tab.active { border-bottom-color: #2563eb !important; border-left-color: transparent !important; }
+    
+    #tracker_modal > div { width: 100% !important; height: 100vh !important; max-width: 100vw !important; border-radius: 0 !important; }
+    #tracker_content { padding: 10px !important; }
 }
 @media (max-width: 480px) {
     .dashboard-grid { padding: 10px; }
-    .card { padding: 15px; }
-    .input-group label { max-width: 120px; font-size: 0.85rem; }
-    .calc-group label { max-width: 120px; font-size: 0.85rem; }
+    .card { padding: 12px; }
+    
+    .input-group, .calc-group { flex-direction: column; align-items: flex-start; gap: 5px; }
+    .input-group label, .calc-group label { max-width: none; width: 100%; font-size: 0.85rem; }
+    .input-wrapper { min-width: 100%; width: 100%; }
+    .calc-val { width: 100%; text-align: left; margin-top: 5px; }
+    
+    .comm-item { flex-wrap: wrap; }
+    .comm-label { flex: 1 1 100%; margin-bottom: 5px; font-size: 0.9rem; }
+    .comm-input { margin-left: 0; margin-right: auto; }
+    .comm-val { margin-left: auto; }
+    
+    input[type="text"], input[type="number"], select { font-size: 16px !important; }
+    
     .breakeven-banner h4 { font-size: 0.8rem; }
     .breakeven-value { font-size: 1.5rem; }
+    .overview-cards { grid-template-columns: 1fr; }
+    .stats-cards-grid { grid-template-columns: 1fr; }
+    .user-profile button { flex: 1 1 100%; }
 }
