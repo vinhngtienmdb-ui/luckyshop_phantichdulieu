@@ -548,8 +548,8 @@ if (true) {
         p_luckyMul: getVal("p_luckyMul"),
         p_moneyToTicketRate: getVal("p_moneyToTicketRate"),
         p_moneyToTicketRatePromo: getVal("p_moneyToTicketRatePromo"),
-        p_promoStartDate: getVal("p_promoStartDate"),
-        p_promoEndDate: getVal("p_promoEndDate"),
+        p_promoStartDate: document.getElementById("p_promoStartDate").value,
+        p_promoEndDate: document.getElementById("p_promoEndDate").value,
       };
 
       setDoc(doc(db, "configs", "main"), newConfig, { merge: true })
@@ -763,11 +763,26 @@ const calculate = () => {
       const nowMs = Date.now();
       const startMs = new Date(promoStartStr + ":00+07:00").getTime();
       const endMs = new Date(promoEndStr + ":59+07:00").getTime();
+      
+      const banner = document.getElementById("promo_banner");
       if (nowMs >= startMs && nowMs <= endMs) {
           moneyToTicketRate = moneyToTicketRatePromo;
+          if (banner) {
+              banner.style.display = "block";
+              const rateDisplay = document.getElementById("promo_rate_display");
+              const timeDisplay = document.getElementById("promo_time_display");
+              if (rateDisplay) rateDisplay.innerText = moneyToTicketRatePromo;
+              if (timeDisplay) {
+                  const sd = new Date(startMs);
+                  const ed = new Date(endMs);
+                  timeDisplay.innerText = `${sd.getDate().toString().padStart(2, '0')}/${(sd.getMonth()+1).toString().padStart(2, '0')} - ${ed.getDate().toString().padStart(2, '0')}/${(ed.getMonth()+1).toString().padStart(2, '0')}`;
+              }
+          }
+      } else {
+          if (banner) banner.style.display = "none";
       }
   }
-  
+
   const deductionCost = deduction / moneyToTicketRate;
   const totalInvest = groupPrice + deductionCost;
   const luckyBalance = deduction * luckyMul;

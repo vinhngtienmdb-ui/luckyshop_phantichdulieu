@@ -51,6 +51,13 @@
             </div>
         </header>
 
+        <div id="promo_banner" style="display: none; background: linear-gradient(90deg, #f59e0b, #ef4444); color: white; padding: 12px 20px; text-align: center; font-weight: bold; border-radius: 8px; margin: 20px 20px 0 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative;">
+            🎉 ĐANG CÓ CHƯƠNG TRÌNH KHUYẾN MẠI: Tỷ lệ quy đổi Phiếu Khấu Trừ siêu hấp dẫn! (<span id="promo_rate_display"></span> Phiếu / VNĐ)
+            <br>
+            <span style="font-size: 0.9em; font-weight: normal; opacity: 0.9;">Thời gian áp dụng: <span id="promo_time_display"></span></span>
+            <button onclick="this.parentElement.style.display='none'" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">&times;</button>
+        </div>
+
         <!-- Main Content -->
         <main class="dashboard-grid">
             
