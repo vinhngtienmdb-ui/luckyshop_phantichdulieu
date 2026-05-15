@@ -412,11 +412,31 @@
                                    <span class="unit">lần</span>
                                </div>
                            </div>
+                           <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #d97706;">Cấu Hình Khấu Trừ & Khuyến Mại</h3>
                            <div class="input-group">
-                               <label>Tỷ lệ Phiếu / VNĐ</label>
+                               <label>Tỷ lệ Phiếu / VNĐ (Bình thường)</label>
                                <div class="input-wrapper">
-                                   <input type="number" id="p_moneyToTicketRate" value="1.095" step="0.001" title="1 VNĐ tương đương bao nhiêu phiếu">
+                                   <input type="number" id="p_moneyToTicketRate" value="1" step="0.001" title="Tỷ lệ 1 VNĐ bằng bao nhiêu Phiếu Khấu Trừ">
                                    <span class="unit"></span>
+                               </div>
+                           </div>
+                           <div class="input-group">
+                               <label>Tỷ lệ Khuyến Mại</label>
+                               <div class="input-wrapper">
+                                   <input type="number" id="p_moneyToTicketRatePromo" value="1.095" step="0.001" title="Tỷ lệ khuyến mại">
+                                   <span class="unit"></span>
+                               </div>
+                           </div>
+                           <div class="input-group">
+                               <label>Thời gian bắt đầu (GMT+7)</label>
+                               <div class="input-wrapper">
+                                   <input type="datetime-local" id="p_promoStartDate" value="2026-05-16T00:00">
+                               </div>
+                           </div>
+                           <div class="input-group">
+                               <label>Thời gian kết thúc (GMT+7)</label>
+                               <div class="input-wrapper">
+                                   <input type="datetime-local" id="p_promoEndDate" value="2026-05-25T23:59">
                                </div>
                            </div>
                            <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #d97706;">Mức Max Hoa Hồng Cấp Bậc (%)</h3>

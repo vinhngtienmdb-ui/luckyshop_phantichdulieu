@@ -512,6 +512,9 @@ if (true) {
       setVal("p_dailyLuckyRate", data.p_dailyLuckyRate);
       setVal("p_luckyMul", data.p_luckyMul);
       if (data.p_moneyToTicketRate !== undefined) setVal("p_moneyToTicketRate", data.p_moneyToTicketRate);
+      if (data.p_moneyToTicketRatePromo !== undefined) setVal("p_moneyToTicketRatePromo", data.p_moneyToTicketRatePromo);
+      if (data.p_promoStartDate !== undefined) setVal("p_promoStartDate", data.p_promoStartDate);
+      if (data.p_promoEndDate !== undefined) setVal("p_promoEndDate", data.p_promoEndDate);
       if (typeof calculate === "function") calculate();
     }
   });
@@ -544,6 +547,9 @@ if (true) {
         p_dailyLuckyRate: getVal("p_dailyLuckyRate"),
         p_luckyMul: getVal("p_luckyMul"),
         p_moneyToTicketRate: getVal("p_moneyToTicketRate"),
+        p_moneyToTicketRatePromo: getVal("p_moneyToTicketRatePromo"),
+        p_promoStartDate: getVal("p_promoStartDate"),
+        p_promoEndDate: getVal("p_promoEndDate"),
       };
 
       setDoc(doc(db, "configs", "main"), newConfig, { merge: true })
@@ -570,6 +576,9 @@ const inputs = {
   p_dailyLuckyRate: document.getElementById("p_dailyLuckyRate"),
   p_luckyMul: document.getElementById("p_luckyMul"),
   p_moneyToTicketRate: document.getElementById("p_moneyToTicketRate"),
+  p_moneyToTicketRatePromo: document.getElementById("p_moneyToTicketRatePromo"),
+  p_promoStartDate: document.getElementById("p_promoStartDate"),
+  p_promoEndDate: document.getElementById("p_promoEndDate"),
   p_b_rate1: document.getElementById("p_b_rate1"),
   p_b_rate2: document.getElementById("p_b_rate2"),
   p_b_rate3: document.getElementById("p_b_rate3"),
@@ -744,7 +753,21 @@ const calculate = () => {
   const unitPrice = price / 5;
   const groupPrice = turns * unitPrice;
   const deduction = groupPrice / 2;
-  const moneyToTicketRate = parseFloat(inputs.p_moneyToTicketRate?.value) || 1.095;
+  
+  let moneyToTicketRate = parseFloat(inputs.p_moneyToTicketRate?.value) || 1;
+  const moneyToTicketRatePromo = parseFloat(inputs.p_moneyToTicketRatePromo?.value) || 1.095;
+  const promoStartStr = inputs.p_promoStartDate?.value;
+  const promoEndStr = inputs.p_promoEndDate?.value;
+
+  if (promoStartStr && promoEndStr) {
+      const nowMs = Date.now();
+      const startMs = new Date(promoStartStr + ":00+07:00").getTime();
+      const endMs = new Date(promoEndStr + ":59+07:00").getTime();
+      if (nowMs >= startMs && nowMs <= endMs) {
+          moneyToTicketRate = moneyToTicketRatePromo;
+      }
+  }
+  
   const deductionCost = deduction / moneyToTicketRate;
   const totalInvest = groupPrice + deductionCost;
   const luckyBalance = deduction * luckyMul;
