@@ -1022,6 +1022,61 @@ if (btnExportCsv) {
     });
 }
 
+const btnRefreshData = document.getElementById('btn_refresh_data');
+if (btnRefreshData) {
+    btnRefreshData.addEventListener('click', async () => {
+        const refreshIcon = document.getElementById('refresh_icon');
+        // Start animation
+        if (refreshIcon) {
+            refreshIcon.style.display = 'inline-block';
+            refreshIcon.style.animation = 'spin 1s linear infinite';
+        }
+        
+        try {
+            // Re-fetch configs
+            const rolesSnap = await getDoc(doc(db, 'configs', 'roles'));
+            if (rolesSnap.exists()) {
+                const data = rolesSnap.data();
+                const setRoleName = (idUi, idLbl, idOpt, lblComm, idUdrOpt, val) => {
+                    if (!val) return;
+                    const ui = document.getElementById(idUi); if (ui) ui.value = val;
+                    const lbl = document.getElementById(idLbl); if (lbl) lbl.innerText = val;
+                    const opt = document.getElementById(idOpt); if (opt) opt.innerText = val;
+                    const comm = document.getElementById(lblComm); if (comm) comm.innerText = 'HH ' + val.toLowerCase();
+                    const optUdr = document.getElementById(idUdrOpt); if (optUdr) optUdr.innerText = val;
+                };
+                setRoleName('role_name_tgd', null, 'opt_tgd', 'lbl_hh_tgd', 'udr_opt_tgd', data.tgd);
+                setRoleName('role_name_gd', 'chk_lbl_gd', 'opt_gd', 'lbl_hh_gd', 'udr_opt_gd', data.gd);
+                setRoleName('role_name_ql', 'chk_lbl_ql', 'opt_ql', 'lbl_hh_ql', 'udr_opt_ql', data.ql);
+                setRoleName('role_name_nv', 'chk_lbl_nv', 'opt_nv', 'lbl_hh_nv', 'udr_opt_nv', data.nv);
+            }
+
+            const mainSnap = await getDoc(doc(db, 'configs', 'main'));
+            if (mainSnap.exists()) {
+                const data = mainSnap.data();
+                const setVal = (id, val) => { if(val !== undefined && document.getElementById(id)) document.getElementById(id).value = val; };
+                setVal('a_max_tgd', data.a_max_tgd);
+                setVal('a_max_gd', data.a_max_gd);
+                setVal('a_max_ql', data.a_max_ql);
+                setVal('a_max_nv', data.a_max_nv);
+                setVal('a_max_direct', data.a_max_direct);
+            }
+
+            // Trigger calculate
+            calculate();
+            showToast('Đã làm mới dữ liệu từ máy chủ', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('Lỗi làm mới dữ liệu', 'error');
+        } finally {
+            // Stop animation
+            if (refreshIcon) {
+                refreshIcon.style.animation = 'none';
+            }
+        }
+    });
+}
+
 // Initial setup
 window.addEventListener('load', () => {
     if (inputs.u_rank) updateSubordinateVisibility();
