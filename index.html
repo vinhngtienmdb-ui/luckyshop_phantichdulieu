@@ -18,6 +18,12 @@
                 <h1>Lucky Shop Analytics</h1>
             </div>
             <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
+                <button id="btn_quick_create_profile" style="cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #3b82f6; padding: 5px 15px; border-radius: 20px; border: none; color: white; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
+                    ➕ Tạo Hồ Sơ
+                </button>
+                <button id="btn_open_tracker" style="cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #8b5cf6; padding: 5px 15px; border-radius: 20px; border: none; color: white; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
+                    📊 Theo Dõi Thực Tế
+                </button>
                 <button id="btn_refresh_data" style="cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #10b981; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
                     <span id="refresh_icon" style="transition: transform 0.5s;">🔄</span> Làm mới
                 </button>
@@ -512,6 +518,19 @@
                </div>
            </div>
        </div>
+    </div>
+
+    <!-- Tracker Modal -->
+    <div id="tracker_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1001; justify-content: center; align-items: center;">
+        <div style="background: white; width: 98%; max-width: 1200px; height: 95vh; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 25px rgba(0,0,0,0.2);">
+            <div style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+                <h2 style="margin: 0; font-size: 1.25rem;">📊 Theo Dõi Đầu Tư Thực Tế</h2>
+                <button id="btn_close_tracker" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280;">&times;</button>
+            </div>
+            <div id="tracker_content" style="padding: 20px; overflow-y: auto; flex: 1;">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
     </div>
 
     <script type="module" src="app.js"></script>
