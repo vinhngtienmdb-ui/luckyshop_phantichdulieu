@@ -997,6 +997,31 @@ if (statusFilter) {
     });
 }
 
+const btnExportCsv = document.getElementById('btn_export_csv');
+if (btnExportCsv) {
+    btnExportCsv.addEventListener('click', () => {
+        const rows = document.querySelectorAll('.projection-row');
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+        csvContent += "Ngày,Số Dư Đầu Ngày,Lì Xì Phát Sinh,Tiền Mặt Tích Lũy,Số Dư Cuối Ngày,Trạng Thái\n";
+        
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                const cols = row.querySelectorAll('td');
+                const rowData = Array.from(cols).map(col => `"${col.innerText}"`).join(",");
+                csvContent += rowData + "\n";
+            }
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `lich_trinh_dong_tien_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+}
+
 // Initial setup
 window.addEventListener('load', () => {
     if (inputs.u_rank) updateSubordinateVisibility();
