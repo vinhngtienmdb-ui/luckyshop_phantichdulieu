@@ -514,6 +514,15 @@ body {
     color: #065f46;
     font-weight: 500;
 }
+.row-breakeven {
+    background-color: #fef08a !important; /* light yellow bg */
+    border-top: 2px solid #ca8a04;
+    border-bottom: 2px solid #ca8a04;
+}
+.row-breakeven td {
+    color: #854d0e;
+    font-weight: 700;
+}
 
 /* ======================================================
    Responsiveness

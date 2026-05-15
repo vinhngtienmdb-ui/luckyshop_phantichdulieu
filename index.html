@@ -6,6 +6,7 @@
     <title>Lucky Shop - Financial Analytics Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Firebase SDK will be loaded as module in app.js -->
 </head>
 <body>
@@ -90,6 +91,20 @@
                                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;">
                                     <input type="radio" name="p_productChoice" id="p_choice_resell" value="resell" checked> Bán lại sản phẩm
                                 </label>
+                            </div>
+                        </div>
+                        <div class="input-group mt-2">
+                            <label>Thời gian tính toán</label>
+                            <div style="display: flex; gap: 10px;">
+                                <div class="input-wrapper" style="flex: 1;">
+                                    <input type="number" id="p_calcMonths" value="12" min="12" max="120">
+                                    <span class="unit">tháng</span>
+                                </div>
+                                <div style="display:flex; align-items:center;">➔</div>
+                                <div class="input-wrapper" style="flex: 1;">
+                                    <input type="number" id="p_calcDays" value="365" min="365" max="3650">
+                                    <span class="unit">ngày</span>
+                                </div>
                             </div>
                         </div>
                         <div class="calc-group highlight-box bg-gold mt-2">
@@ -274,39 +289,64 @@
                     <div class="sub">Tại ngày 1</div>
                 </div>
                 <div class="stat-card highlight-success">
-                    <h4>Tổng Lì Xì Tích Lũy (1 Năm)</h4>
+                    <h4 id="s_accLixiTitle">Tổng Lì Xì Tích Lũy</h4>
                     <div class="val text-success" id="s_accLixi">0 đ</div>
-                    <div class="sub">Cộng dồn 365 ngày</div>
+                    <div class="sub" id="s_accLixiSub">Cộng dồn N ngày</div>
                 </div>
                 <div class="stat-card highlight-purple">
                     <h4>Lợi Nhuận Ròng (ROI)</h4>
                     <div class="val text-purple" id="s_roi">0.0%</div>
-                    <div class="sub">Sau 365 ngày</div>
+                    <div class="sub" id="s_roiSub">Sau N ngày</div>
                 </div>
             </section>
 
-            <!-- Section 4: 365 Days Projection -->
-            <section class="projection-table-section">
-                <div class="table-header">
-                    <h3>📅 Lịch Trình Tích Lũy Dòng Tiền (365 Ngày)</h3>
+            <!-- Section Chart -->
+            <section class="chart-section" style="margin-bottom: 20px;">
+                <div class="table-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" id="toggle_chart">
+                    <h3>📈 Biểu Đồ Lợi Nhuận Tích Lũy</h3>
+                    <span id="chart_icon">▲</span>
                 </div>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Ngày</th>
-                                <th>Số Dư Đầu Ngày</th>
-                                <th>Lì Xì Phát Sinh</th>
-                                <!-- Removed Phiếu Sử Dụng & Hoa Hồng Sinh Ra -->
-                                <th>Tiền Mặt Tích Lũy</th>
-                                <th>Số Dư Cuối Ngày</th>
-                                <th>Trạng Thái</th>
-                            </tr>
-                        </thead>
-                        <tbody id="timelineBody">
-                            <!-- JS Inject -->
-                        </tbody>
-                    </table>
+                <div id="chart_content" style="display: block;">
+                    <div id="chart_container" style="padding: 15px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; height: 400px;">
+                        <canvas id="profitChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Projection -->
+            <section class="projection-table-section">
+                <div class="table-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" id="toggle_projection_table">
+                    <h3 id="projection_table_title">📅 Lịch Trình Tích Lũy Dòng Tiền</h3>
+                    <span id="projection_table_icon">▲</span>
+                </div>
+                <div id="projection_content" style="display: block;">
+                    <div style="padding: 10px 15px; border-bottom: 1px solid #eee; background: #fafafa; display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
+                        <label for="status_filter" style="font-size: 0.9rem; font-weight: 500;">Lọc trạng thái:</label>
+                        <select id="status_filter" style="padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 0.9rem;">
+                            <option value="all">Tất cả</option>
+                            <option value="hoavon">Đã hòa vốn</option>
+                            <option value="thieu">Còn thiếu</option>
+                            <option value="diemhoavon">Chỉ điểm hòa vốn</option>
+                        </select>
+                    </div>
+                    <div class="table-container" id="projection_table_container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Ngày</th>
+                                    <th>Số Dư Đầu Ngày</th>
+                                    <th>Lì Xì Phát Sinh</th>
+                                    <!-- Removed Phiếu Sử Dụng & Hoa Hồng Sinh Ra -->
+                                    <th>Tiền Mặt Tích Lũy</th>
+                                    <th>Số Dư Cuối Ngày</th>
+                                    <th>Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="timelineBody">
+                                <!-- JS Inject -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 

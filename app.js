@@ -448,6 +448,8 @@ if (true) {
 // Main DOM Elements
 const inputs = {
     p_price: document.getElementById('p_price'),
+    p_calcMonths: document.getElementById('p_calcMonths'),
+    p_calcDays: document.getElementById('p_calcDays'),
     p_turns: document.getElementById('p_turns'),
     p_choice_take: document.getElementById('p_choice_take'),
     p_choice_resell: document.getElementById('p_choice_resell'),
@@ -658,13 +660,31 @@ const calculate = () => {
         calc.s_linearDays.className = "breakeven-value";
     }
 
-    // Timeline Loop 365 Days
+    const p_calcDaysInput = parseInt(inputs.p_calcDays.value) || 365;
+    const calcDays = Math.max(365, Math.min(3650, p_calcDaysInput));
+    
+    // Update texts
+    const projectionTitle = document.getElementById('projection_table_title');
+    if (projectionTitle) projectionTitle.innerText = `📅 Lịch Trình Tích Lũy Dòng Tiền (${calcDays} Ngày)`;
+
+    const s_accLixiSub = document.getElementById('s_accLixiSub');
+    if (s_accLixiSub) s_accLixiSub.innerText = `Cộng dồn ${calcDays} ngày`;
+
+    const s_roiSub = document.getElementById('s_roiSub');
+    if (s_roiSub) s_roiSub.innerText = `Sau ${calcDays} ngày`;
+
     let currBalance = luckyBalance;
     let totalCash = 0;
     let htmlContent = '';
     const total_commission_rate = r1 + r2 + r3 + r4 + r5 + r6 + r7;
 
-    for (let day = 1; day <= 365; day++) {
+    let chartLabels = [];
+    let chartAccCash = [];
+    let chartCapital = [];
+    
+    let isBreakEvenAdded = false;
+
+    for (let day = 1; day <= calcDays; day++) {
         const genLixi = currBalance * dailyLuckyRate;
         const commGenerated = newTickets * total_commission_rate;
         const cashToday = genLixi - newTickets - commGenerated;
@@ -674,28 +694,136 @@ const calculate = () => {
 
         let status = '';
         let rowClass = '';
+        let dataStatus = '';
+        const isFirstBreakEven = false;
+        
         if (totalCash >= needToCover) {
             const profit = totalCash - needToCover;
             status = `✅ Đã hòa vốn (Lãi: ${formatNumberTable(profit)})`;
             rowClass = 'row-success';
+            dataStatus = 'hoavon';
         } else {
             status = `⏳ Còn thiếu ${formatNumberTable(needToCover - totalCash)}`;
+            dataStatus = 'thieu';
+        }
+        
+        if (!isBreakEvenAdded && totalCash >= needToCover && needToCover > 0) {
+            rowClass = 'row-breakeven font-bold';
+            dataStatus = 'diemhoavon';
         }
 
+        const tooltipNgay = `Ngày thứ ${day} của quá trình đầu tư`;
+        const tooltipSoDuDau = `Số dư gốc đang dùng để tính lì xì hôm nay`;
+        const tooltipLiXiPhatSinh = `Tính từ ${(dailyLuckyRate * 100).toFixed(1)}% của Số dư đầu ngày`;
+        const tooltipTienMatTichLuy = `Tiền mặt hôm nay: ${formatNumberTable(cashToday)} VNĐ (Lì xì - Mua vé - Hoa hồng)`;
+        const tooltipSoDuCuoi = `${formatNumberTable(currBalance)} - ${formatNumberTable(genLixi)} = ${formatNumberTable(endBalance)} VNĐ`;
+
         htmlContent += `
-            <tr class="${rowClass}">
-                <td>${day}</td>
-                <td>${formatNumberTable(currBalance)}</td>
-                <td>${formatNumberTable(genLixi)}</td>
-                <td>${formatNumberTable(totalCash)}</td>
-                <td>${formatNumberTable(endBalance)}</td>
-                <td style="text-align: left;">${status}</td>
+            <tr class="${rowClass} projection-row" data-status="${dataStatus}">
+                <td title="${tooltipNgay}">${day}</td>
+                <td title="${tooltipSoDuDau}">${formatNumberTable(currBalance)}</td>
+                <td title="${tooltipLiXiPhatSinh}">${formatNumberTable(genLixi)}</td>
+                <td title="${tooltipTienMatTichLuy}">${formatNumberTable(totalCash)}</td>
+                <td title="${tooltipSoDuCuoi}">${formatNumberTable(endBalance)}</td>
+                <td style="text-align: left;" title="Lãi ròng: ${totalCash >= needToCover ? formatNumberTable(totalCash - needToCover) : 0}">${status}</td>
             </tr>
         `;
         currBalance = endBalance;
+
+        // collect chart data per month (every 30 days) or last day
+        if (day % 30 === 0 || day === calcDays) {
+            chartLabels.push(`Tháng ${Math.ceil(day / 30)}`);
+            chartAccCash.push(totalCash);
+            chartCapital.push(needToCover);
+        }
+
+        if (!isBreakEvenAdded && totalCash >= needToCover && needToCover > 0) {
+            if (day % 30 !== 0 && day !== calcDays) {
+                // Insert break-even into chart data if not already falling exactly on a month's boundary
+                chartLabels.push(`Hòa Vốn (T${Math.ceil(day/30)}, Ngày ${day})`);
+                chartAccCash.push(totalCash);
+                chartCapital.push(needToCover);
+            } else {
+                // If it falls exactly on a month boundary, we modify the existing label
+                chartLabels[chartLabels.length - 1] = `Hòa Vốn (${chartLabels[chartLabels.length - 1]}, Ngày ${day})`;
+            }
+            isBreakEvenAdded = true;
+        }
     }
 
     calc.timelineBody.innerHTML = htmlContent;
+    
+    // Reapply filter
+    const statusFilterEl = document.getElementById('status_filter');
+    if (statusFilterEl) {
+        statusFilterEl.dispatchEvent(new Event('change'));
+    }
+
+    // Draw Chart
+    if (window.profitChartInstance) {
+        window.profitChartInstance.destroy();
+    }
+    const ctx = document.getElementById('profitChart');
+    if (ctx) {
+        window.profitChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [
+                    {
+                        label: 'Tiền mặt tích lũy',
+                        data: chartAccCash,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: chartLabels.map(l => l.includes('Hòa Vốn') ? 6 : 3),
+                        pointBackgroundColor: chartLabels.map(l => l.includes('Hòa Vốn') ? '#8b5cf6' : '#10b981')
+                    },
+                    {
+                        label: 'Vốn ban đầu (Cần bù lì xì)',
+                        data: chartCapital,
+                        borderColor: '#ef4444',
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('vi-VN').format(Math.round(context.parsed.y)) + ' VNĐ';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return new Intl.NumberFormat('vi-VN', { notation: "compact", compactDisplay: "short" }).format(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     // Post-loop stats
     calc.s_accLixi.innerText = formatVND(totalCash);
@@ -776,6 +904,92 @@ if (inputs.p_price) {
             e.target.value = '';
         }
         calculate();
+    });
+}
+
+if (inputs.p_calcMonths) {
+    inputs.p_calcMonths.addEventListener('input', () => {
+        let months = parseInt(inputs.p_calcMonths.value) || 12;
+        months = Math.max(12, Math.min(120, months));
+        
+        let days = 0;
+        if (months % 12 === 0) {
+            days = (months / 12) * 365;
+        } else {
+            days = months * 30;
+        }
+        
+        if (inputs.p_calcDays) {
+            inputs.p_calcDays.value = days;
+        }
+        calculate();
+    });
+}
+
+if (inputs.p_calcDays) {
+    inputs.p_calcDays.addEventListener('input', () => {
+        let days = parseInt(inputs.p_calcDays.value) || 365;
+        days = Math.max(365, Math.min(3650, days));
+        if (inputs.p_calcMonths) {
+            if (days % 365 === 0) {
+                inputs.p_calcMonths.value = (days / 365) * 12;
+            } else {
+                inputs.p_calcMonths.value = Math.round(days / 30);
+            }
+        }
+        calculate();
+    });
+}
+
+const toggleProjectionTable = document.getElementById('toggle_projection_table');
+const projectionContent = document.getElementById('projection_content');
+const projectionIcon = document.getElementById('projection_table_icon');
+
+if (toggleProjectionTable && projectionContent && projectionIcon) {
+    toggleProjectionTable.addEventListener('click', () => {
+        if (projectionContent.style.display === 'none' || projectionContent.style.display === '') {
+            projectionContent.style.display = 'block';
+            projectionIcon.innerText = '▲';
+        } else {
+            projectionContent.style.display = 'none';
+            projectionIcon.innerText = '▼';
+        }
+    });
+}
+
+const toggleChart = document.getElementById('toggle_chart');
+const chartContent = document.getElementById('chart_content');
+const chartIcon = document.getElementById('chart_icon');
+
+if (toggleChart && chartContent && chartIcon) {
+    toggleChart.addEventListener('click', () => {
+        if (chartContent.style.display === 'none' || chartContent.style.display === '') {
+            chartContent.style.display = 'block';
+            chartIcon.innerText = '▲';
+        } else {
+            chartContent.style.display = 'none';
+            chartIcon.innerText = '▼';
+        }
+    });
+}
+
+const statusFilter = document.getElementById('status_filter');
+if (statusFilter) {
+    statusFilter.addEventListener('change', (e) => {
+        const filterVal = e.target.value;
+        const rows = document.querySelectorAll('.projection-row');
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            if (filterVal === 'all') {
+                row.style.display = '';
+            } else if (filterVal === 'hoavon' && (rowStatus === 'hoavon' || rowStatus === 'diemhoavon')) {
+                row.style.display = '';
+            } else if (filterVal === rowStatus) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
     });
 }
 
