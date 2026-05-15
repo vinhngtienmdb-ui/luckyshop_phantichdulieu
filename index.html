@@ -366,8 +366,14 @@
         </main>
     </div>
 
-    <div id="image_promo_modal" class="promo-modal-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2000; justify-content: center; align-items: center;">
-       <div id="image_promo_content" class="promo-modal-content" style="position: relative; max-width: 90vw; max-height: 90vh;">
+    <div id="image_promo_modal" class="promo-modal-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2000; justify-content: center; align-items: center; flex-direction: column;">
+       
+       <div id="promo_loading" style="display: none; flex-direction: column; align-items: center; color: white; z-index: 2002;">
+           <div class="loader-spinner"></div>
+           <p style="margin-top: 20px; font-weight: bold; font-size: 1.3rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5); letter-spacing: 1px; color: #f59e0b; animation: pulseImageFX 1.5s infinite;">Đang chuẩn bị siêu sự kiện...</p>
+       </div>
+
+       <div id="image_promo_content" class="promo-modal-content" style="position: relative; max-width: 90vw; max-height: 90vh; display: none;">
            <div class="promo-glow"></div>
            <button onclick="document.getElementById('image_promo_modal').classList.remove('active'); document.getElementById('image_promo_content').classList.remove('active');" style="position: absolute; right: -15px; top: -15px; background: white; border: 2px solid #ef4444; color: #ef4444; width: 34px; height: 34px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 2001; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1) rotate(90deg)'" onmouseout="this.style.transform='scale(1) rotate(0deg)'">&times;</button>
            <img src="/popup-promo.jpg" alt="Chương trình khuyến mại" class="promo-image-fx" style="position: relative; z-index: 2; max-width: 100%; max-height: 85vh; border-radius: 12px; display: block;" onerror="this.onerror=null; this.src='https://placehold.co/800x450/ef4444/FFF?text=Khuyn+Mai+Sinh+Nhat+Bac';">

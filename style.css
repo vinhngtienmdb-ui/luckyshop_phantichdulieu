@@ -181,6 +181,22 @@ body {
     100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
 }
 
+.loader-spinner {
+    border: 5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    border-top: 5px solid #f59e0b;
+    border-right: 5px solid #ef4444;
+    width: 60px;
+    height: 60px;
+    animation: spinLoader 1s linear infinite;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+}
+
+@keyframes spinLoader {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 @keyframes fadeIn {
     from { opacity: 0; backdrop-filter: blur(0px); background: rgba(0,0,0,0); }
     to { opacity: 1; backdrop-filter: blur(8px); background: rgba(0,0,0,0.8); }

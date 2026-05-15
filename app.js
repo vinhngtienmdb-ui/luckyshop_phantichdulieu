@@ -787,7 +787,6 @@ const calculate = () => {
 
       if (isNotifyActive || isPreview) {
           if (banner) {
-              banner.style.display = "block";
               const rateDisplay = document.getElementById("promo_rate_display");
               const timeDisplay = document.getElementById("promo_time_display");
               if (rateDisplay) rateDisplay.innerText = moneyToTicketRatePromo;
@@ -797,23 +796,45 @@ const calculate = () => {
                   timeDisplay.innerText = `${sd.getDate().toString().padStart(2, '0')}/${(sd.getMonth()+1).toString().padStart(2, '0')}/${sd.getFullYear()} - ${ed.getDate().toString().padStart(2, '0')}/${(ed.getMonth()+1).toString().padStart(2, '0')}/${ed.getFullYear()}`;
               }
           }
+          
           if (imagePromoModal) {
-              const popupShown = sessionStorage.getItem("promo_popup_shown_v2");
+              const popupShown = sessionStorage.getItem("promo_popup_shown_v3");
               if (!popupShown || isPreview) {
+                  if (banner) banner.style.display = "none"; // Hide banner during loading
+
                   // remove classes first to re-trigger animations if already opened once
                   imagePromoModal.classList.remove("active");
                   const content = document.getElementById("image_promo_content");
-                  if (content) content.classList.remove("active");
+                  const loading = document.getElementById("promo_loading");
+
+                  if (content) {
+                      content.classList.remove("active");
+                      content.style.display = "none";
+                  }
+                  if (loading) loading.style.display = "flex";
                   
                   // Force reflow
                   void imagePromoModal.offsetWidth;
 
                   imagePromoModal.classList.add("active");
-                  if (content) content.classList.add("active");
 
-                  sessionStorage.setItem("promo_popup_shown_v2", "1");
+                  setTimeout(() => {
+                      if (loading) loading.style.display = "none";
+                      if (content) {
+                          content.style.display = "block";
+                          void content.offsetWidth;
+                          content.classList.add("active");
+                      }
+                      if (banner) banner.style.display = "block";
+                  }, 1500);
+
+                  sessionStorage.setItem("promo_popup_shown_v3", "1");
                   if (isPreview) window.isPromoPreviewActive = false; // Reset preview state after showing
+              } else {
+                  if (banner) banner.style.display = "block";
               }
+          } else {
+              if (banner) banner.style.display = "block";
           }
       } else {
           if (banner) banner.style.display = "none";
