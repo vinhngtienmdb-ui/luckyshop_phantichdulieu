@@ -519,6 +519,15 @@ if (true) {
     }
   });
 
+  const btnPreviewPromo = document.getElementById("btn_preview_promo");
+  if (btnPreviewPromo) {
+      btnPreviewPromo.addEventListener("click", () => {
+          window.isPromoPreviewActive = true;
+          calculate(); // Triggers config application and shows UI
+          document.getElementById('admin_modal').style.display = 'none'; // Close admin config temporarily
+      });
+  }
+
   if (btnSaveConfig) {
     btnSaveConfig.addEventListener("click", () => {
       if (!auth.currentUser) {
@@ -768,11 +777,15 @@ const calculate = () => {
       const banner = document.getElementById("promo_banner");
       const imagePromoModal = document.getElementById("image_promo_modal");
       
-      if (nowMs >= startMs && nowMs <= endMs) {
+      let isPromoActive = nowMs >= startMs && nowMs <= endMs;
+      let isNotifyActive = nowMs >= notifyMs && nowMs <= endMs;
+      let isPreview = window.isPromoPreviewActive === true;
+
+      if (isPromoActive || isPreview) {
           moneyToTicketRate = moneyToTicketRatePromo;
       }
 
-      if (nowMs >= notifyMs && nowMs <= endMs) {
+      if (isNotifyActive || isPreview) {
           if (banner) {
               banner.style.display = "block";
               const rateDisplay = document.getElementById("promo_rate_display");
@@ -784,9 +797,13 @@ const calculate = () => {
                   timeDisplay.innerText = `${sd.getDate().toString().padStart(2, '0')}/${(sd.getMonth()+1).toString().padStart(2, '0')}/${sd.getFullYear()} - ${ed.getDate().toString().padStart(2, '0')}/${(ed.getMonth()+1).toString().padStart(2, '0')}/${ed.getFullYear()}`;
               }
           }
-          if (imagePromoModal && !sessionStorage.getItem("promo_popup_shown")) {
-              imagePromoModal.style.display = "flex";
-              sessionStorage.setItem("promo_popup_shown", "1");
+          if (imagePromoModal) {
+              const popupShown = sessionStorage.getItem("promo_popup_shown_v2");
+              if (!popupShown || isPreview) {
+                  imagePromoModal.style.display = "flex";
+                  sessionStorage.setItem("promo_popup_shown_v2", "1");
+                  if (isPreview) window.isPromoPreviewActive = false; // Reset preview state after showing
+              }
           }
       } else {
           if (banner) banner.style.display = "none";
