@@ -525,7 +525,7 @@ const calculate = () => {
     // Read Table A Inputs
     const priceStr = inputs.p_price.value.replace(/\./g, '');
     const price = parseFloat(priceStr) || 0;
-    const turns = parseFloat(inputs.p_turns.value) || 0;
+    const turns = parseFloat(inputs.p_turns.value || inputs.p_turns.innerText) || 20;
     const isTake = inputs.p_choice_take && inputs.p_choice_take.checked;
     const resellRate = isTake ? 0 : 0.8;
     const dailyLuckyRate = (parseFloat(inputs.p_dailyLuckyRate.value) || 0) / 100;

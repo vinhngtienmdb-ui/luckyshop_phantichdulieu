@@ -163,10 +163,14 @@ body {
     background: var(--bg-main);
     border-radius: var(--radius-md);
     padding: 0.25rem 0.5rem;
-    width: 130px;
+    min-width: 140px;
+    max-width: 200px;
+    flex: 1;
+    justify-content: flex-end;
 }
 .input-wrapper input {
     width: 100%;
+    min-width: 0;
     border: none;
     background: transparent;
     text-align: right;
@@ -339,10 +343,11 @@ body {
     margin-bottom: 0.25rem;
 }
 .dash-card .value {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--text-main);
     margin-bottom: 0.25rem;
+    word-break: break-word;
 }
 .dash-card.danger .value { color: var(--danger); }
 .dash-card.success .value { color: var(--success); }
@@ -373,13 +378,14 @@ body {
     margin-bottom: 0.5rem;
 }
 .breakeven-value {
-    font-size: 3rem;
+    font-size: 2.25rem;
     font-weight: 900;
     color: #ef4444; /* Strong Red */
     text-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
     margin-bottom: 0.25rem;
     letter-spacing: -1px;
     animation: pulse-text 2s infinite;
+    word-break: break-word;
 }
 @keyframes pulse-text {
     0% { transform: scale(1); }
@@ -436,13 +442,14 @@ body {
     margin-bottom: 0.75rem;
 }
 .stat-card .val {
-    font-size: 1.65rem;
+    font-size: 1.4rem;
     font-weight: 800;
     margin-bottom: 0.4rem;
+    word-break: break-word;
 }
 /* ROI value slightly bigger */
 .stat-card.highlight-purple .val {
-    font-size: 2rem !important;
+    font-size: 1.7rem !important;
 }
 .stat-card .sub {
     font-size: 0.75rem;
