@@ -763,10 +763,16 @@ const calculate = () => {
       const nowMs = Date.now();
       const startMs = new Date(promoStartStr + ":00+07:00").getTime();
       const endMs = new Date(promoEndStr + ":59+07:00").getTime();
+      const notifyMs = startMs - (4 * 60 * 60 * 1000); // 4 hours before
       
       const banner = document.getElementById("promo_banner");
+      const imagePromoModal = document.getElementById("image_promo_modal");
+      
       if (nowMs >= startMs && nowMs <= endMs) {
           moneyToTicketRate = moneyToTicketRatePromo;
+      }
+
+      if (nowMs >= notifyMs && nowMs <= endMs) {
           if (banner) {
               banner.style.display = "block";
               const rateDisplay = document.getElementById("promo_rate_display");
@@ -778,8 +784,13 @@ const calculate = () => {
                   timeDisplay.innerText = `${sd.getDate().toString().padStart(2, '0')}/${(sd.getMonth()+1).toString().padStart(2, '0')}/${sd.getFullYear()} - ${ed.getDate().toString().padStart(2, '0')}/${(ed.getMonth()+1).toString().padStart(2, '0')}/${ed.getFullYear()}`;
               }
           }
+          if (imagePromoModal && !sessionStorage.getItem("promo_popup_shown")) {
+              imagePromoModal.style.display = "flex";
+              sessionStorage.setItem("promo_popup_shown", "1");
+          }
       } else {
           if (banner) banner.style.display = "none";
+          if (imagePromoModal) imagePromoModal.style.display = "none";
       }
   }
 
@@ -1461,7 +1472,21 @@ const loadTrackerData = () => {
     profiles[newId] = oldProfile;
     activeId = newId;
     localStorage.removeItem("lucky_tracker");
-    localStorage.setItem("lucky_tracker_profiles", JSON.stringify(profiles));
+    // We defer the save to the caller or do it safely
+    try {
+        const safeOld = {
+           name: String(oldProfile.name || ""),
+           startDate: String(oldProfile.startDate || ""),
+           luckyBalance: Number(oldProfile.luckyBalance) || 0,
+           turns: Number(oldProfile.turns) || 0,
+           luckyMul: Number(oldProfile.luckyMul) || 0,
+           dailyLuckyRate: Number(oldProfile.dailyLuckyRate) || 0,
+           needToCover: Number(oldProfile.needToCover) || 0,
+           actualLixi: oldProfile.actualLixi || {}
+        };
+        profiles[newId] = safeOld;
+        localStorage.setItem("lucky_tracker_profiles", JSON.stringify(profiles));
+    } catch(e) {}
     localStorage.setItem("lucky_tracker_active_id", activeId);
   }
 
@@ -1474,33 +1499,39 @@ const loadTrackerData = () => {
 };
 
 const saveTrackerData = (profiles, activeId) => {
-  try {
-    localStorage.setItem("lucky_tracker_profiles", JSON.stringify(profiles));
-  } catch (e) {
-    if (e && e.message && e.message.includes("circular")) {
-      const safeProfiles = {};
-      for (const id in profiles) {
-        const p = profiles[id];
-        const safeActual = {};
-        if (p.actualLixi) {
-            for (const key in p.actualLixi) { safeActual[key] = Number(p.actualLixi[key]); }
+  // Completely strip out any non-primitive data to ensure no DOM elements 
+  // or circular references ever make it into localStorage.
+  const safeProfiles = {};
+  for (const id in profiles) {
+    const p = profiles[id];
+    if (!p) continue;
+
+    const safeActual = {};
+    if (p.actualLixi) {
+        for (const key in p.actualLixi) { 
+            safeActual[key] = Number(p.actualLixi[key]) || 0; 
         }
-        safeProfiles[id] = {
-           name: String(p.name),
-           startDate: String(p.startDate),
-           luckyBalance: Number(p.luckyBalance),
-           turns: Number(p.turns),
-           luckyMul: Number(p.luckyMul),
-           dailyLuckyRate: Number(p.dailyLuckyRate),
-           needToCover: Number(p.needToCover),
-           actualLixi: safeActual
-        };
-      }
-      localStorage.setItem("lucky_tracker_profiles", JSON.stringify(safeProfiles));
-    } else {
-      console.error(e);
     }
+    
+    // Explicitly rebuild the object with primitives only
+    safeProfiles[id] = {
+       name: String(p.name || ""),
+       startDate: String(p.startDate || ""),
+       luckyBalance: Number(p.luckyBalance) || 0,
+       turns: Number(p.turns) || 0,
+       luckyMul: Number(p.luckyMul) || 0,
+       dailyLuckyRate: Number(p.dailyLuckyRate) || 0,
+       needToCover: Number(p.needToCover) || 0,
+       actualLixi: safeActual
+    };
   }
+
+  try {
+    localStorage.setItem("lucky_tracker_profiles", JSON.stringify(safeProfiles));
+  } catch (e) {
+    console.error(e);
+  }
+
   if (activeId) {
     localStorage.setItem("lucky_tracker_active_id", activeId);
   } else {
