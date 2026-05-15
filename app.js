@@ -511,6 +511,7 @@ if (true) {
       setVal("p_b_rate7", data.p_b_rate7);
       setVal("p_dailyLuckyRate", data.p_dailyLuckyRate);
       setVal("p_luckyMul", data.p_luckyMul);
+      if (data.p_moneyToTicketRate !== undefined) setVal("p_moneyToTicketRate", data.p_moneyToTicketRate);
       if (typeof calculate === "function") calculate();
     }
   });
@@ -542,6 +543,7 @@ if (true) {
         p_b_rate7: getVal("p_b_rate7"),
         p_dailyLuckyRate: getVal("p_dailyLuckyRate"),
         p_luckyMul: getVal("p_luckyMul"),
+        p_moneyToTicketRate: getVal("p_moneyToTicketRate"),
       };
 
       setDoc(doc(db, "configs", "main"), newConfig, { merge: true })
@@ -567,6 +569,7 @@ const inputs = {
   p_choice_resell: document.getElementById("p_choice_resell"),
   p_dailyLuckyRate: document.getElementById("p_dailyLuckyRate"),
   p_luckyMul: document.getElementById("p_luckyMul"),
+  p_moneyToTicketRate: document.getElementById("p_moneyToTicketRate"),
   p_b_rate1: document.getElementById("p_b_rate1"),
   p_b_rate2: document.getElementById("p_b_rate2"),
   p_b_rate3: document.getElementById("p_b_rate3"),
@@ -741,7 +744,9 @@ const calculate = () => {
   const unitPrice = price / 5;
   const groupPrice = turns * unitPrice;
   const deduction = groupPrice / 2;
-  const totalInvest = groupPrice + deduction;
+  const moneyToTicketRate = parseFloat(inputs.p_moneyToTicketRate?.value) || 1.095;
+  const deductionCost = deduction / moneyToTicketRate;
+  const totalInvest = groupPrice + deductionCost;
   const luckyBalance = deduction * luckyMul;
 
   calc.c_groupPrice.innerText = formatNumberTable(groupPrice);
