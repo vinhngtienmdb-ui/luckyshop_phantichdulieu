@@ -406,6 +406,8 @@ if (true) {
             setVal('p_b_rate5', data.p_b_rate5);
             setVal('p_b_rate6', data.p_b_rate6);
             setVal('p_b_rate7', data.p_b_rate7);
+            setVal('p_dailyLuckyRate', data.p_dailyLuckyRate);
+            setVal('p_luckyMul', data.p_luckyMul);
             if(typeof calculate === 'function') calculate();
         }
     });
@@ -434,7 +436,9 @@ if (true) {
                 p_b_rate4: getVal('p_b_rate4'),
                 p_b_rate5: getVal('p_b_rate5'),
                 p_b_rate6: getVal('p_b_rate6'),
-                p_b_rate7: getVal('p_b_rate7')
+                p_b_rate7: getVal('p_b_rate7'),
+                p_dailyLuckyRate: getVal('p_dailyLuckyRate'),
+                p_luckyMul: getVal('p_luckyMul')
             };
 
             setDoc(doc(db, 'configs', 'main'), newConfig, { merge: true })
