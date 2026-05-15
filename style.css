@@ -23,7 +23,7 @@
     --radius-lg: 0.75rem;
 
     /* Master width — single source of truth */
-    --content-width: 1100px;
+    --content-width: 1400px;
 }
 
 * {
@@ -537,7 +537,7 @@ body {
 /* ======================================================
    Responsiveness
    ====================================================== */
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
     .top-row { grid-template-columns: 1fr 1fr; }
     .card-c { grid-column: 1 / -1; }
     .overview-cards { grid-template-columns: repeat(2, 1fr); }
