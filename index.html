@@ -97,13 +97,28 @@
                         <!-- Resell Rate and New Tickets inputs replaced by Radio choice -->
                         <div class="input-group mt-2">
                             <label style="display: block; font-weight: 500; margin-bottom: 5px;">Tùy chọn sản phẩm</label>
-                            <div style="display: flex; gap: 20px; align-items: center; padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;">
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;">
-                                    <input type="radio" name="p_productChoice" id="p_choice_take" value="take"> Lấy sản phẩm
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;">
-                                    <input type="radio" name="p_productChoice" id="p_choice_resell" value="resell" checked> Bán lại sản phẩm
-                                </label>
+                            <div style="display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;">
+                                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;">
+                                        <input type="radio" name="p_productChoice" id="p_choice_take" value="take"> Lấy sản phẩm
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;">
+                                        <input type="radio" name="p_productChoice" id="p_choice_resell_platform" value="resell_platform" checked> 
+                                        <span>Bán cho sàn <span style="font-size: 0.85em; color: #ef4444; margin-left: 2px; font-weight: 600;">(Phí: 0.5%)</span></span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #444;">
+                                        <input type="radio" name="p_productChoice" id="p_choice_resell_self" value="resell_self"> Tự bán
+                                    </label>
+                                </div>
+                                <div id="self_resell_input_container" style="display: none; padding-top: 5px; border-top: 1px dashed #ccc;">
+                                    <div class="input-group" style="margin-bottom: 0;">
+                                        <label>Số tiền tự bán được</label>
+                                        <div class="input-wrapper">
+                                            <input type="text" id="p_self_resell_amount" value="3.200.000">
+                                            <span class="unit">VNĐ</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="input-group mt-2">
@@ -188,9 +203,23 @@
                             <div>Tổng HH & Lương</div>
                             <div class="fw-bold text-gold" id="b_totalHH">0</div>
                         </div>
-                        <div class="comm-summary">
-                            <div>Bán lại sản phẩm (<span id="b_resellRate">0%</span>)</div>
-                            <div id="b_resellAmt">0</div>
+                        <div class="comm-summary" style="align-items: center; padding-top: 10px;">
+                            <div style="flex: 1;">
+                                Bán lại sản phẩm
+                            </div>
+                            <div id="b_resellAmt" class="fw-bold">0</div>
+                        </div>
+                        <div class="comm-summary" id="b_platformFeeContainer" style="align-items: center; padding-top: 5px; padding-bottom: 5px; color: #ef4444; font-size: 0.9em;">
+                            <div style="flex: 1;" id="b_platformFeeLabel">
+                                Phí sàn (0.5%)
+                            </div>
+                            <div id="b_platformFeeAmt">-0</div>
+                        </div>
+                        <div class="comm-summary text-success" id="b_resellActualContainer" style="align-items: center; padding-top: 5px;">
+                            <div style="flex: 1;">
+                                Thực nhận bán lại
+                            </div>
+                            <div id="b_resellActualAmt" class="fw-bold">0</div>
                         </div>
                         <div class="comm-summary">
                             <div>Gốc hoàn về (Bao nhóm)</div>

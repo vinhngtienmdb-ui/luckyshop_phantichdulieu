@@ -581,7 +581,10 @@ const inputs = {
   p_calcDays: document.getElementById("p_calcDays"),
   p_turns: document.getElementById("p_turns"),
   p_choice_take: document.getElementById("p_choice_take"),
-  p_choice_resell: document.getElementById("p_choice_resell"),
+  p_choice_resell_platform: document.getElementById("p_choice_resell_platform"),
+  p_choice_resell_self: document.getElementById("p_choice_resell_self"),
+  p_self_resell_amount: document.getElementById("p_self_resell_amount"),
+  self_resell_input_container: document.getElementById("self_resell_input_container"),
   p_dailyLuckyRate: document.getElementById("p_dailyLuckyRate"),
   p_luckyMul: document.getElementById("p_luckyMul"),
   p_moneyToTicketRate: document.getElementById("p_moneyToTicketRate"),
@@ -626,7 +629,6 @@ const calc = {
   b_amt5: document.getElementById("b_amt5"),
   b_amt6: document.getElementById("b_amt6"),
   b_amt7: document.getElementById("b_amt7"),
-  b_resellRate: document.getElementById("b_resellRate"),
 
   b_totalHH: document.getElementById("b_totalHH"),
   b_resellAmt: document.getElementById("b_resellAmt"),
@@ -657,8 +659,19 @@ const calculate = () => {
   const price = parseFloat(priceStr) || 0;
   const turns =
     parseFloat(inputs.p_turns.value || inputs.p_turns.innerText) || 20;
+    
   const isTake = inputs.p_choice_take && inputs.p_choice_take.checked;
-  const resellRate = isTake ? 0 : 0.8;
+  const isResellPlatform = inputs.p_choice_resell_platform && inputs.p_choice_resell_platform.checked;
+  const isResellSelf = inputs.p_choice_resell_self && inputs.p_choice_resell_self.checked;
+  
+  if (inputs.self_resell_input_container) {
+    if (isResellSelf) {
+      inputs.self_resell_input_container.style.display = "block";
+    } else {
+      inputs.self_resell_input_container.style.display = "none";
+    }
+  }
+
   const dailyLuckyRate = (parseFloat(inputs.p_dailyLuckyRate.value) || 0) / 100;
   const luckyMul = parseFloat(inputs.p_luckyMul.value) || 0;
   const newTickets = 0;
@@ -884,14 +897,47 @@ const calculate = () => {
   const totalHH = a1 + a2 + a3 + a4 + a5 + a6 + a7;
   calc.b_totalHH.innerText = formatNumberTable(totalHH);
 
-  calc.b_resellRate.innerText = formatPercent(resellRate);
-  const resellAmt = price * resellRate;
+  let resellRate = 0;
+  let resellAmt = 0; // Gross amount
+  let platformFee = 0;
+  let resellActual = 0; // Net amount
+  
+  const platformFeeContainer = document.getElementById("b_platformFeeContainer");
+  const platformFeeLabel = document.getElementById("b_platformFeeLabel");
+  const platformFeeAmt = document.getElementById("b_platformFeeAmt");
+  const resellActualContainer = document.getElementById("b_resellActualContainer");
+  const resellActualAmt = document.getElementById("b_resellActualAmt");
+  
+  if (isTake) {
+      resellRate = 0;
+      resellAmt = 0;
+      platformFee = 0;
+      resellActual = 0;
+      if (platformFeeLabel) platformFeeLabel.innerText = "Phí sàn (0%)";
+  } else if (isResellPlatform) {
+      resellRate = 0.8;
+      resellAmt = price * resellRate;
+      platformFee = resellAmt * 0.005;
+      resellActual = resellAmt - platformFee;
+      if (platformFeeLabel) platformFeeLabel.innerText = "Phí sàn (0.5%)";
+  } else if (isResellSelf) {
+      const selfValStr = inputs.p_self_resell_amount ? inputs.p_self_resell_amount.value.replace(/\./g, "") : "0";
+      resellAmt = parseFloat(selfValStr) || 0;
+      resellRate = price > 0 ? resellAmt / price : 0;
+      platformFee = 0;
+      resellActual = resellAmt;
+      if (platformFeeLabel) platformFeeLabel.innerText = "Phí sàn (0%)";
+  }
+
+  if (platformFeeAmt) platformFeeAmt.innerText = "-" + formatNumberTable(platformFee);
+  if (resellActualAmt) resellActualAmt.innerText = formatNumberTable(resellActual);
+
   calc.b_resellAmt.innerText = formatNumberTable(resellAmt);
 
   const capitalReturned = groupPrice - unitPrice;
   calc.b_capitalReturned.innerText = formatNumberTable(capitalReturned);
 
-  const instantTotal = totalHH + resellAmt;
+  const instantTotal = totalHH + resellActual;
   calc.b_instantTotal.innerText = formatNumberTable(instantTotal);
 
   const needToCover = totalInvest - totalHH - resellAmt - capitalReturned;
@@ -899,7 +945,7 @@ const calculate = () => {
 
   // Update Dashboard Cards
   calc.d_totalInvest.innerText = formatVND(totalInvest);
-  calc.d_resellReturn.innerText = formatVND(resellAmt);
+  calc.d_resellReturn.innerText = formatVND(resellActual);
   calc.d_totalHH.innerText = formatVND(totalHH);
   calc.d_needToCover.innerText = formatVND(needToCover);
 
@@ -1220,6 +1266,18 @@ if (inputs.p_calcDays) {
       } else {
         inputs.p_calcMonths.value = Math.round(days / 30);
       }
+    }
+    calculate();
+  });
+}
+
+if (inputs.p_self_resell_amount) {
+  inputs.p_self_resell_amount.addEventListener("input", function (e) {
+    let val = e.target.value.replace(/\D/g, "");
+    if (val !== "") {
+      e.target.value = new Intl.NumberFormat("vi-VN").format(parseInt(val, 10));
+    } else {
+      e.target.value = "0";
     }
     calculate();
   });
