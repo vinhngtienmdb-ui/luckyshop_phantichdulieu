@@ -66,6 +66,25 @@ if (true) {
   const btnSaveConfig = document.getElementById("btn_save_config");
   const adminToggle = document.getElementById("admin_mode_toggle");
 
+  const mtabInputs = document.getElementById("mtab_inputs");
+  const mtabResults = document.getElementById("mtab_results");
+  const mainDashboard = document.getElementById("main_dashboard");
+
+  if (mtabInputs && mtabResults && mainDashboard) {
+      mtabInputs.addEventListener("click", () => {
+          mtabInputs.classList.add("active");
+          mtabResults.classList.remove("active");
+          mainDashboard.classList.add("mobile-tab-inputs");
+          mainDashboard.classList.remove("mobile-tab-results");
+      });
+      mtabResults.addEventListener("click", () => {
+          mtabResults.classList.add("active");
+          mtabInputs.classList.remove("active");
+          mainDashboard.classList.add("mobile-tab-results");
+          mainDashboard.classList.remove("mobile-tab-inputs");
+      });
+  }
+
   let currentUserRole = "user";
   let userSnapshotUnsub = null;
   let usersListUnsub = null;
@@ -439,20 +458,25 @@ if (true) {
 
         if (btnLogin) btnLogin.style.display = "none";
         if (btnLogout) btnLogout.style.display = "flex";
+        
+        const btnOpenTracker = document.getElementById("btn_open_tracker");
+        const btnQuickCreateProfile = document.getElementById("btn_quick_create_profile");
+        if (btnOpenTracker) btnOpenTracker.style.display = "flex";
+        if (btnQuickCreateProfile) btnQuickCreateProfile.style.display = "flex";
 
         const udrContainer = document.getElementById(
           "user_default_rank_container",
         );
         if (udrContainer) udrContainer.style.display = "flex";
 
+        const isSuperAdmin = user.email === "vinh.ngtienmdb@gmail.com" || user.email === "admin@admin.com";
+
         if (currentUserRole === "admin") {
-          if (btnAdminPanel) btnAdminPanel.style.display = "flex";
+          if (btnAdminPanel) btnAdminPanel.style.display = isSuperAdmin ? "flex" : "none";
           if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "flex";
           if (userInfoDisplay) {
             userInfoDisplay.style.display = "block";
-            userInfoDisplay.innerText =
-              user.email === "vinh.ngtienmdb@gmail.com" ||
-              user.email === "admin@admin.com"
+            userInfoDisplay.innerText = isSuperAdmin
                 ? "Trạng thái: Super Admin"
                 : `Xin chào Admin: ${user.displayName || user.email}`;
           }
@@ -477,6 +501,12 @@ if (true) {
       currentUserRole = "user";
       if (btnLogin) btnLogin.style.display = "flex";
       if (btnLogout) btnLogout.style.display = "none";
+      
+      const btnOpenTracker = document.getElementById("btn_open_tracker");
+      const btnQuickCreateProfile = document.getElementById("btn_quick_create_profile");
+      if (btnOpenTracker) btnOpenTracker.style.display = "none";
+      if (btnQuickCreateProfile) btnQuickCreateProfile.style.display = "none";
+
       if (btnAdminPanel) btnAdminPanel.style.display = "none";
       if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "none";
       if (userInfoDisplay) userInfoDisplay.style.display = "none";
