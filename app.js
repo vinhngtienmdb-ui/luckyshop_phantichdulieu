@@ -51,6 +51,7 @@ if (true) {
   const btnLogin = document.getElementById("btn_login");
   const btnLogout = document.getElementById("btn_logout");
   const btnAdminPanel = document.getElementById("btn_admin_panel");
+  const btnSaveScreenDefaults = document.getElementById("btn_save_screen_defaults");
   const adminModal = document.getElementById("admin_modal");
   const btnCloseAdmin = document.getElementById("btn_close_admin");
   const userMgmtTableBody = document.getElementById("user_mgmt_table_body");
@@ -446,6 +447,7 @@ if (true) {
 
         if (currentUserRole === "admin") {
           if (btnAdminPanel) btnAdminPanel.style.display = "flex";
+          if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "flex";
           if (userInfoDisplay) {
             userInfoDisplay.style.display = "block";
             userInfoDisplay.innerText =
@@ -460,6 +462,7 @@ if (true) {
           }
         } else {
           if (btnAdminPanel) btnAdminPanel.style.display = "none";
+          if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "none";
           if (userInfoDisplay) {
             userInfoDisplay.style.display = "block";
             userInfoDisplay.innerText = `Xin chào: ${user.displayName || user.email}`;
@@ -475,6 +478,7 @@ if (true) {
       if (btnLogin) btnLogin.style.display = "flex";
       if (btnLogout) btnLogout.style.display = "none";
       if (btnAdminPanel) btnAdminPanel.style.display = "none";
+      if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "none";
       if (userInfoDisplay) userInfoDisplay.style.display = "none";
 
       const udrContainer = document.getElementById(
@@ -515,6 +519,27 @@ if (true) {
       if (data.p_moneyToTicketRatePromo !== undefined) setVal("p_moneyToTicketRatePromo", data.p_moneyToTicketRatePromo);
       if (data.p_promoStartDate !== undefined) setVal("p_promoStartDate", data.p_promoStartDate);
       if (data.p_promoEndDate !== undefined) setVal("p_promoEndDate", data.p_promoEndDate);
+      
+      // Apply UI defaults
+      if (data.ui_p_price !== undefined) setVal("p_price", data.ui_p_price);
+      if (data.ui_p_turns !== undefined) {
+         if (document.getElementById("p_turns")) {
+            if (document.getElementById("p_turns").tagName === "INPUT") {
+                document.getElementById("p_turns").value = data.ui_p_turns;
+            } else {
+                document.getElementById("p_turns").innerText = data.ui_p_turns;
+            }
+         }
+      }
+      if (data.ui_p_calcMonths !== undefined) setVal("p_calcMonths", data.ui_p_calcMonths);
+      if (data.ui_p_calcDays !== undefined) setVal("p_calcDays", data.ui_p_calcDays);
+      if (data.ui_p_self_resell_amount !== undefined) setVal("p_self_resell_amount", data.ui_p_self_resell_amount);
+      if (data.ui_p_choice) {
+          if (document.getElementById("p_choice_take")) document.getElementById("p_choice_take").checked = data.ui_p_choice === "take";
+          if (document.getElementById("p_choice_resell_platform")) document.getElementById("p_choice_resell_platform").checked = data.ui_p_choice === "resell_platform";
+          if (document.getElementById("p_choice_resell_self")) document.getElementById("p_choice_resell_self").checked = data.ui_p_choice === "resell_self";
+      }
+
       if (typeof calculate === "function") calculate();
     }
   });
@@ -526,6 +551,29 @@ if (true) {
           calculate(); // Triggers config application and shows UI
           document.getElementById('admin_modal').style.display = 'none'; // Close admin config temporarily
       });
+  }
+
+  if (btnSaveScreenDefaults) {
+    btnSaveScreenDefaults.addEventListener("click", () => {
+      if (!auth.currentUser || currentUserRole !== "admin") return;
+      
+      let pChoice = "take";
+      if (document.getElementById("p_choice_resell_platform") && document.getElementById("p_choice_resell_platform").checked) pChoice = "resell_platform";
+      if (document.getElementById("p_choice_resell_self") && document.getElementById("p_choice_resell_self").checked) pChoice = "resell_self";
+      
+      const newConfig = {
+        ui_p_price: document.getElementById("p_price") ? document.getElementById("p_price").value : "",
+        ui_p_turns: document.getElementById("p_turns") ? (document.getElementById("p_turns").value || document.getElementById("p_turns").innerText) : "",
+        ui_p_calcMonths: document.getElementById("p_calcMonths") ? document.getElementById("p_calcMonths").value : "",
+        ui_p_calcDays: document.getElementById("p_calcDays") ? document.getElementById("p_calcDays").value : "",
+        ui_p_choice: pChoice,
+        ui_p_self_resell_amount: document.getElementById("p_self_resell_amount") ? document.getElementById("p_self_resell_amount").value : ""
+      };
+
+      setDoc(doc(db, "configs", "main"), newConfig, { merge: true })
+        .then(() => showToast("Đã lưu các số liệu trên màn hình thành mặc định hệ thống thành công!", "success"))
+        .catch((err) => showToast("Lỗi khi lưu: " + err.message, "error"));
+    });
   }
 
   if (btnSaveConfig) {
