@@ -14,6 +14,8 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
+  addDoc,
   onSnapshot,
   getDoc,
   serverTimestamp,
@@ -55,6 +57,10 @@ if (true) {
   const adminModal = document.getElementById("admin_modal");
   const btnCloseAdmin = document.getElementById("btn_close_admin");
   const userMgmtTableBody = document.getElementById("user_mgmt_table_body");
+  const btnAddUser = document.getElementById("btn_add_user");
+  const newUserEmail = document.getElementById("new_user_email");
+  const newUserName = document.getElementById("new_user_name");
+  const newUserRole = document.getElementById("new_user_role");
   const userInfoDisplay = document.getElementById("user_info");
   const loginModal = document.getElementById("login_modal");
   const btnDoLoginGoogle = document.getElementById("btn_do_login_google");
@@ -165,7 +171,10 @@ if (true) {
         nv: document.getElementById("role_name_nv").value || "Nhân viên",
       };
       setDoc(doc(db, "configs", "roles"), rolesConf, { merge: true })
-        .then(() => showToast("Đã lưu tên chức danh mới!", "success"))
+        .then(() => {
+            showToast("Đã lưu chức danh và tỷ lệ!", "success");
+            if (btnSaveConfig) btnSaveConfig.click();
+        })
         .catch((err) =>
           showToast("Lỗi lưu chức danh: " + err.message, "error"),
         );
@@ -262,22 +271,34 @@ if (true) {
           data.email === "admin@admin.com";
 
         let selectHtml = "";
+        let actionBtns = "";
+        let nameHtml = "";
         if (isSuperAdmin) {
           selectHtml = `<span style="color: red; font-weight: bold;">Super Admin</span>`;
+          nameHtml = data.displayName || "-";
         } else {
           const isAdmin = data.role === "admin";
+          const isBlocked = data.isBlocked === true;
           selectHtml = `
                         <select onchange="updateUserRole('${doc.id}', this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc;">
                             <option value="user" ${!isAdmin ? "selected" : ""}>Người dùng</option>
                             <option value="admin" ${isAdmin ? "selected" : ""}>Admin</option>
                         </select>
                     `;
+          const blockBtnText = isBlocked ? "Mở chặn" : "Chặn";
+          const blockBtnColor = isBlocked ? "#10b981" : "#f59e0b";
+          actionBtns = `
+            <button onclick="toggleBlockUser('${doc.id}', ${isBlocked})" style="background: ${blockBtnColor}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 5px;">${blockBtnText}</button>
+            <button onclick="deleteUser('${doc.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Xóa</button>
+          `;
+          nameHtml = `<input type="text" value="${data.displayName || ""}" onblur="updateUserName('${doc.id}', this.value)" style="padding: 4px; border: 1px solid #ccc; width: 100%; border-radius: 4px;">`;
         }
 
         tr.innerHTML = `
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">${data.email}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee;">${data.displayName || "-"}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; ${data.isBlocked ? 'text-decoration: line-through; color: #999;' : ''}">${data.email}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">${nameHtml}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${selectHtml}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${actionBtns}</td>
                 `;
         userMgmtTableBody.appendChild(tr);
       });
@@ -319,10 +340,69 @@ if (true) {
 
   window.updateUserRole = (userId, newRole) => {
     if (!auth.currentUser || currentUserRole !== "admin") return;
-    updateDoc(doc(db, "users", userId), { role: newRole }).catch((err) =>
-      showToast("Lỗi cập nhật quyền: " + err.message, "error"),
-    );
+    updateDoc(doc(db, "users", userId), { role: newRole })
+      .then(() => showToast("Cập nhật quyền thành công!", "success"))
+      .catch((err) =>
+        showToast("Lỗi cập nhật quyền: " + err.message, "error"),
+      );
   };
+
+  window.updateUserName = (userId, newName) => {
+    if (!auth.currentUser || currentUserRole !== "admin") return;
+    updateDoc(doc(db, "users", userId), { displayName: newName })
+      .then(() => showToast("Cập nhật tên thành công!", "success"))
+      .catch((err) =>
+        showToast("Lỗi cập nhật tên: " + err.message, "error"),
+      );
+  };
+
+  window.toggleBlockUser = (userId, currentStatus) => {
+    if (!auth.currentUser || currentUserRole !== "admin") return;
+    const actionStr = currentStatus ? "Mở chặn" : "Chặn";
+    if (confirm(`Bạn có chắc chắn muốn ${actionStr} user này không?`)) {
+      updateDoc(doc(db, "users", userId), { isBlocked: !currentStatus })
+        .then(() => showToast(`${actionStr} user thành công!`, "success"))
+        .catch((err) =>
+          showToast(`Lỗi ${actionStr} user: ` + err.message, "error"),
+        );
+    }
+  };
+
+  window.deleteUser = (userId) => {
+    if (!auth.currentUser || currentUserRole !== "admin") return;
+    if (confirm("Bạn có chắc chắn muốn xóa user này không?")) {
+      deleteDoc(doc(db, "users", userId))
+        .then(() => showToast("Xóa user thành công!", "success"))
+        .catch((err) =>
+          showToast("Lỗi xóa user: " + err.message, "error"),
+        );
+    }
+  };
+
+  if (btnAddUser) {
+    btnAddUser.addEventListener("click", () => {
+      if (!auth.currentUser || currentUserRole !== "admin") return;
+      const email = newUserEmail.value.trim();
+      const name = newUserName.value.trim();
+      const role = newUserRole.value;
+      if (!email) {
+        showToast("Vui lòng nhập Email", "error");
+        return;
+      }
+      addDoc(collection(db, "users"), {
+        email: email,
+        displayName: name,
+        role: role,
+        createdAt: serverTimestamp()
+      })
+      .then(() => {
+        showToast("Thêm User thành công!", "success");
+        newUserEmail.value = "";
+        newUserName.value = "";
+      })
+      .catch((err) => showToast("Lỗi thêm user: " + err.message, "error"));
+    });
+  }
 
   if (btnDoLoginEmail) {
     btnDoLoginEmail.addEventListener("click", () => {
@@ -426,6 +506,11 @@ if (true) {
       userSnapshotUnsub = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          if (data.isBlocked) {
+            signOut(auth);
+            showToast("Tài khoản của bạn đã bị khóa.", "error");
+            return;
+          }
           currentUserRole =
             user.email === "vinh.ngtienmdb@gmail.com" ||
             user.email === "admin@admin.com"

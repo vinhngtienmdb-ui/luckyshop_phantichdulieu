@@ -501,35 +501,6 @@
                            <button id="btn_preview_promo" style="width: 100%; padding: 8px; background: #f59e0b; color: white; border: none; border-radius: 5px; font-weight: 600; margin-top: 10px; cursor: pointer;">
                                👀 Xem thử Banner & Popup
                            </button>
-                           <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #d97706;">Mức Max Hoa Hồng Cấp Bậc (%)</h3>
-                           <div class="input-group">
-                               <label>Mức max Nhân viên</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="a_max_nv" value="5">
-                                   <span class="unit">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group">
-                               <label>Mức max Quản lý</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="a_max_ql" value="10">
-                                   <span class="unit">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group">
-                               <label>Mức max Giám đốc</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="a_max_gd" value="15">
-                                   <span class="unit">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group">
-                               <label>Mức max Tổng GĐ</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="a_max_tgd" value="20">
-                                   <span class="unit">%</span>
-                               </div>
-                           </div>
                            <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #10b981;">Mức Max Hoa Hồng Phân Phối (%)</h3>
                            <div class="input-group">
                                <label>Mức max Trực tiếp</label>
@@ -575,6 +546,15 @@
                    <!-- Tab 2: Quản lý Người dùng -->
                    <div id="admin_tab_users" class="admin-content" style="display: none; height: 100%; display: flex; flex-direction: column;">
                        <h2 class="card-title">👥 Quản Lý Người Dùng & Phân Quyền</h2>
+                       <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; padding: 5px 0;">
+                           <input type="email" id="new_user_email" placeholder="Nhập Email mới..." style="flex: 1; min-width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                           <input type="text" id="new_user_name" placeholder="Nhập Tên..." style="flex: 1; min-width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                           <select id="new_user_role" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                               <option value="user">Người dùng</option>
+                               <option value="admin">Admin</option>
+                           </select>
+                           <button id="btn_add_user" style="padding: 8px 15px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Thêm User</button>
+                       </div>
                        <div class="table-responsive" style="flex: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px;">
                            <table class="data-table" style="width: 100%; text-align: left;">
                                <thead style="background: #f8f9fa;">
@@ -582,6 +562,7 @@
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">Email</th>
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">Tên</th>
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Quyền Quản Trị</th>
+                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Hành Động</th>
                                    </tr>
                                </thead>
                                <tbody id="user_mgmt_table_body">
@@ -596,32 +577,48 @@
                        <h2 class="card-title">🏅 Quản Lý Chức Danh</h2>
                        <p class="subtitle-note">Chỉnh sửa tên hiển thị của các chức danh trong hệ thống</p>
                        <div class="input-list" style="max-width: 500px; margin-top: 10px;">
-                           <div class="input-group">
-                               <label>Tổng Giám đốc</label>
-                               <div class="input-wrapper" style="width: 200px; background: #fff; border: 1px solid #ddd;">
+                           <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                               <div style="flex: 1; font-weight: bold; color: #444;">Tên Chức Danh</div>
+                               <div style="width: 100px; font-weight: bold; color: #444; text-align: center;">Tỷ Lệ HH (%)</div>
+                           </div>
+                           <div class="input-group" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                               <div class="input-wrapper" style="flex: 1; background: #fff; border: 1px solid #ddd;">
                                    <input type="text" id="role_name_tgd" value="Tổng Giám đốc" style="text-align: left;">
                                </div>
+                               <div class="input-wrapper" style="width: 100px; background: #fff; border: 1px solid #ddd;">
+                                   <input type="number" id="a_max_tgd" value="20" style="text-align: right;">
+                                   <span class="unit" style="padding-right: 5px;">%</span>
+                               </div>
                            </div>
-                           <div class="input-group">
-                               <label>Giám đốc</label>
-                               <div class="input-wrapper" style="width: 200px; background: #fff; border: 1px solid #ddd;">
+                           <div class="input-group" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                               <div class="input-wrapper" style="flex: 1; background: #fff; border: 1px solid #ddd;">
                                    <input type="text" id="role_name_gd" value="Giám đốc" style="text-align: left;">
                                </div>
-                           </div>
-                           <div class="input-group">
-                               <label>Quản lý</label>
-                               <div class="input-wrapper" style="width: 200px; background: #fff; border: 1px solid #ddd;">
-                                   <input type="text" id="role_name_ql" value="Quản lý" style="text-align: left;">
+                               <div class="input-wrapper" style="width: 100px; background: #fff; border: 1px solid #ddd;">
+                                   <input type="number" id="a_max_gd" value="15" style="text-align: right;">
+                                   <span class="unit" style="padding-right: 5px;">%</span>
                                </div>
                            </div>
-                           <div class="input-group">
-                               <label>Nhân viên</label>
-                               <div class="input-wrapper" style="width: 200px; background: #fff; border: 1px solid #ddd;">
+                           <div class="input-group" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                               <div class="input-wrapper" style="flex: 1; background: #fff; border: 1px solid #ddd;">
+                                   <input type="text" id="role_name_ql" value="Quản lý" style="text-align: left;">
+                               </div>
+                               <div class="input-wrapper" style="width: 100px; background: #fff; border: 1px solid #ddd;">
+                                   <input type="number" id="a_max_ql" value="10" style="text-align: right;">
+                                   <span class="unit" style="padding-right: 5px;">%</span>
+                               </div>
+                           </div>
+                           <div class="input-group" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                               <div class="input-wrapper" style="flex: 1; background: #fff; border: 1px solid #ddd;">
                                    <input type="text" id="role_name_nv" value="Nhân viên" style="text-align: left;">
+                               </div>
+                               <div class="input-wrapper" style="width: 100px; background: #fff; border: 1px solid #ddd;">
+                                   <input type="number" id="a_max_nv" value="5" style="text-align: right;">
+                                   <span class="unit" style="padding-right: 5px;">%</span>
                                </div>
                            </div>
                            <button id="btn_save_roles" style="width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 5px; font-weight: 600; margin-top: 20px; cursor: pointer;">
-                               💾 Lưu Tên Chức Danh
+                               💾 Lưu Chức Danh & Tỷ Lệ
                            </button>
                        </div>
                    </div>
