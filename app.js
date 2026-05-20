@@ -547,6 +547,9 @@ if (true) {
       setVal("p_luckyMul", data.p_luckyMul);
       if (data.p_moneyToTicketRate !== undefined) setVal("p_moneyToTicketRate", data.p_moneyToTicketRate);
       if (data.p_moneyToTicketRatePromo !== undefined) setVal("p_moneyToTicketRatePromo", data.p_moneyToTicketRatePromo);
+      if (data.p_platformFeeRate !== undefined) setVal("p_platformFeeRate", data.p_platformFeeRate);
+      if (data.p_platformFeeOldRate !== undefined) setVal("p_platformFeeOldRate", data.p_platformFeeOldRate);
+      if (data.p_platformFeeStartDate !== undefined) setVal("p_platformFeeStartDate", data.p_platformFeeStartDate);
       if (data.p_promoStartDate !== undefined) setVal("p_promoStartDate", data.p_promoStartDate);
       if (data.p_promoEndDate !== undefined) setVal("p_promoEndDate", data.p_promoEndDate);
       
@@ -635,6 +638,9 @@ if (true) {
         p_luckyMul: getVal("p_luckyMul"),
         p_moneyToTicketRate: getVal("p_moneyToTicketRate"),
         p_moneyToTicketRatePromo: getVal("p_moneyToTicketRatePromo"),
+        p_platformFeeRate: getVal("p_platformFeeRate"),
+        p_platformFeeOldRate: getVal("p_platformFeeOldRate"),
+        p_platformFeeStartDate: document.getElementById("p_platformFeeStartDate").value,
         p_promoStartDate: document.getElementById("p_promoStartDate").value,
         p_promoEndDate: document.getElementById("p_promoEndDate").value,
       };
@@ -669,6 +675,9 @@ const inputs = {
   p_moneyToTicketRatePromo: document.getElementById("p_moneyToTicketRatePromo"),
   p_promoStartDate: document.getElementById("p_promoStartDate"),
   p_promoEndDate: document.getElementById("p_promoEndDate"),
+  p_platformFeeRate: document.getElementById("p_platformFeeRate"),
+  p_platformFeeOldRate: document.getElementById("p_platformFeeOldRate"),
+  p_platformFeeStartDate: document.getElementById("p_platformFeeStartDate"),
   p_b_rate1: document.getElementById("p_b_rate1"),
   p_b_rate2: document.getElementById("p_b_rate2"),
   p_b_rate3: document.getElementById("p_b_rate3"),
@@ -993,11 +1002,29 @@ const calculate = () => {
       resellActual = 0;
       if (platformFeeLabel) platformFeeLabel.innerText = "Phí sàn (0%)";
   } else if (isResellPlatform) {
+      const now = new Date();
+      let activeFeeRate = 5;
+      if (inputs.p_platformFeeStartDate && inputs.p_platformFeeStartDate.value) {
+          const startDate = new Date(inputs.p_platformFeeStartDate.value);
+          const oldRate = inputs.p_platformFeeOldRate ? parseFloat(inputs.p_platformFeeOldRate.value) : 0.5;
+          const newRate = inputs.p_platformFeeRate ? parseFloat(inputs.p_platformFeeRate.value) : 5;
+          if (now >= startDate) {
+              activeFeeRate = newRate;
+          } else {
+              activeFeeRate = oldRate;
+          }
+      } else {
+          activeFeeRate = inputs.p_platformFeeRate ? parseFloat(inputs.p_platformFeeRate.value) : 5;
+      }
+      if (isNaN(activeFeeRate)) activeFeeRate = 5;
+
       resellRate = 0.8;
       resellAmt = price * resellRate;
-      platformFee = resellAmt * 0.005;
+      platformFee = resellAmt * (activeFeeRate / 100);
       resellActual = resellAmt - platformFee;
-      if (platformFeeLabel) platformFeeLabel.innerText = "Phí sàn (0.5%)";
+      if (platformFeeLabel) platformFeeLabel.innerText = `Phí sàn (${activeFeeRate}%)`;
+      const platformFeeDisplay = document.getElementById("p_platformFeeDisplay");
+      if (platformFeeDisplay) platformFeeDisplay.innerText = `(Phí: ${activeFeeRate}%)`;
   } else if (isResellSelf) {
       const selfValStr = inputs.p_self_resell_amount ? inputs.p_self_resell_amount.value.replace(/\./g, "") : "0";
       resellAmt = parseFloat(selfValStr) || 0;
