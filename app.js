@@ -746,8 +746,12 @@ if (true) {
         
         const btnOpenTracker = document.getElementById("btn_open_tracker");
         const btnQuickCreateProfile = document.getElementById("btn_quick_create_profile");
+        const inlineTrackerBanner = document.getElementById("inline_tracker_banner");
+        const mTabTracker = document.getElementById("mtab_tracker");
         if (btnOpenTracker) btnOpenTracker.style.display = "flex";
         if (btnQuickCreateProfile) btnQuickCreateProfile.style.display = "flex";
+        if (inlineTrackerBanner) inlineTrackerBanner.style.display = "block";
+        if (mTabTracker) mTabTracker.style.display = "block";
 
         const udrContainer = document.getElementById(
           "user_default_rank_container",
@@ -794,8 +798,12 @@ if (true) {
       
       const btnOpenTracker = document.getElementById("btn_open_tracker");
       const btnQuickCreateProfile = document.getElementById("btn_quick_create_profile");
+      const inlineTrackerBanner = document.getElementById("inline_tracker_banner");
+      const mTabTracker = document.getElementById("mtab_tracker");
       if (btnOpenTracker) btnOpenTracker.style.display = "none";
       if (btnQuickCreateProfile) btnQuickCreateProfile.style.display = "none";
+      if (inlineTrackerBanner) inlineTrackerBanner.style.display = "none";
+      if (mTabTracker) mTabTracker.style.display = "none";
 
       if (btnAdminPanel) btnAdminPanel.style.display = "none";
       if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "none";
