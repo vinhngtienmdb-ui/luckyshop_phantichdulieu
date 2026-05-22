@@ -19,6 +19,9 @@ import {
   onSnapshot,
   getDoc,
   serverTimestamp,
+  query,
+  orderBy,
+  limit,
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 import {
   getAuth,
@@ -29,6 +32,39 @@ import {
   signOut,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+const toastContainer =
+  document.getElementById("toast_container") ||
+  (function () {
+    const tc = document.createElement("div");
+    tc.id = "toast_container";
+    tc.style.position = "fixed";
+    tc.style.bottom = "20px";
+    tc.style.right = "20px";
+    tc.style.zIndex = "9999";
+    document.body.appendChild(tc);
+    return tc;
+  })();
+
+const showToast = (msg, type = "info") => {
+  const t = document.createElement("div");
+  t.style.padding = "12px 20px";
+  t.style.marginTop = "10px";
+  t.style.borderRadius = "4px";
+  t.style.color = "#fff";
+  t.style.fontSize = "14px";
+  t.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
+  t.style.transition = "opacity 0.3s ease-in-out";
+  if (type === "error") t.style.backgroundColor = "#ef4444";
+  else if (type === "success") t.style.backgroundColor = "#10b981";
+  else t.style.backgroundColor = "#3b82f6";
+  t.innerText = msg;
+  toastContainer.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = "0";
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+};
 
 // --- FIREBASE SETUP ---
 // Cấu hình Firebase dự án của bạn
@@ -94,6 +130,53 @@ if (true) {
   let currentUserRole = "user";
   let userSnapshotUnsub = null;
   let usersListUnsub = null;
+  let historyListUnsub = null;
+  
+  window.logAction = (action, metadata = {}) => {
+    if (!auth.currentUser) return;
+    addDoc(collection(db, "history"), {
+      email: auth.currentUser.email,
+      uid: auth.currentUser.uid,
+      action: action,
+      metadata: metadata,
+      createdAt: serverTimestamp()
+    }).catch(err => console.error("Error logging action:", err));
+  };
+
+  const loadHistoryList = () => {
+    if (!auth.currentUser || currentUserRole !== "admin") return;
+    if (historyListUnsub) historyListUnsub();
+
+    const q = query(collection(db, "history"), orderBy("createdAt", "desc"), limit(100));
+    historyListUnsub = onSnapshot(q, (snapshot) => {
+      const historyTableBody = document.getElementById("history_table_body");
+      if (!historyTableBody) return;
+      
+      if (snapshot.empty) {
+        historyTableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #666;">Chưa có dữ liệu</td></tr>';
+        return;
+      }
+      
+      historyTableBody.innerHTML = "";
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const tr = document.createElement("tr");
+        
+        let timeStr = "-";
+        if (data.createdAt) {
+          const date = data.createdAt.toDate();
+          timeStr = date.toLocaleString('vi-VN');
+        }
+        
+        tr.innerHTML = `
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${timeStr}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${data.email || "Unknown"}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${data.action || "-"}</td>
+        `;
+        historyTableBody.appendChild(tr);
+      });
+    });
+  };
 
   if (btnLogin)
     btnLogin.addEventListener(
@@ -110,6 +193,7 @@ if (true) {
     btnAdminPanel.addEventListener("click", () => {
       adminModal.style.display = "flex";
       loadUsersList();
+      loadHistoryList();
 
       // Set first tab active by default
       const adminTabs = document.querySelectorAll(".admin-tab");
@@ -133,6 +217,7 @@ if (true) {
       btnCloseAdmin.addEventListener("click", () => {
         adminModal.style.display = "none";
         if (usersListUnsub) usersListUnsub();
+        if (historyListUnsub) historyListUnsub();
       });
     }
   }
@@ -173,6 +258,7 @@ if (true) {
       setDoc(doc(db, "configs", "roles"), rolesConf, { merge: true })
         .then(() => {
             showToast("Đã lưu chức danh và tỷ lệ!", "success");
+            logAction("Cập nhật tên & tỷ lệ chức danh", rolesConf);
             if (btnSaveConfig) btnSaveConfig.click();
         })
         .catch((err) =>
@@ -188,7 +274,10 @@ if (true) {
         updateDoc(doc(db, "users", auth.currentUser.uid), {
           defaultRank: e.target.value,
         })
-          .then(() => showToast("Đã lưu chức danh mặc định!", "success"))
+          .then(() => {
+            showToast("Đã lưu chức danh mặc định!", "success");
+            logAction("Cập nhật chức danh mặc định cá nhân", { defaultRank: e.target.value });
+          })
           .catch((err) =>
             showToast("Lỗi lưu chức danh: " + err.message, "error"),
           );
@@ -273,23 +362,41 @@ if (true) {
         let selectHtml = "";
         let actionBtns = "";
         let nameHtml = "";
+        let accountTeamHtml = `<div style="font-size: 0.85em; color: #555;">LS: ${data.luckyShopAccount || '-'}</div><div style="font-size: 0.85em; color: #555;">Team: ${data.luckyShopTeam || '-'}</div>`;
+        let statusHtml = "";
+
         if (isSuperAdmin) {
           selectHtml = `<span style="color: red; font-weight: bold;">Super Admin</span>`;
           nameHtml = data.displayName || "-";
+          statusHtml = `<span style="color: #10b981; font-weight: bold;">Đã duyệt</span>`;
         } else {
           const isAdmin = data.role === "admin";
           const isBlocked = data.isBlocked === true;
           selectHtml = `
-                        <select onchange="updateUserRole('${doc.id}', this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc;">
+                        <select onchange="updateUserRole('${doc.id}', this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; width: 100%;">
                             <option value="user" ${!isAdmin ? "selected" : ""}>Người dùng</option>
                             <option value="admin" ${isAdmin ? "selected" : ""}>Admin</option>
                         </select>
                     `;
           const blockBtnText = isBlocked ? "Mở chặn" : "Chặn";
-          const blockBtnColor = isBlocked ? "#10b981" : "#f59e0b";
+          const blockBtnColor = isBlocked ? "#8b5cf6" : "#f59e0b";
+          
+          let approveBtn = "";
+          if (data.status === "pending") {
+              statusHtml = `<span style="color: #f59e0b; font-weight: bold;">Chờ duyệt</span>`;
+              approveBtn = `<button onclick="approveUser('${doc.id}', '${data.email}')" style="background: #10b981; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 5px; margin-bottom: 5px; display: block; width: 100%;">Phê Duyệt</button>`;
+          } else if (data.status === "approved") {
+              statusHtml = `<span style="color: #10b981; font-weight: bold;">Đã duyệt</span>`;
+          } else {
+              statusHtml = `<span style="color: #9ca3af;">Mới</span>`;
+          }
+
           actionBtns = `
-            <button onclick="toggleBlockUser('${doc.id}', ${isBlocked})" style="background: ${blockBtnColor}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 5px;">${blockBtnText}</button>
-            <button onclick="deleteUser('${doc.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Xóa</button>
+            ${approveBtn}
+            <div style="display: flex; gap: 5px;">
+                <button onclick="toggleBlockUser('${doc.id}', ${isBlocked})" style="background: ${blockBtnColor}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; flex: 1;">${blockBtnText}</button>
+                <button onclick="deleteUser('${doc.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; flex: 1;">Xóa</button>
+            </div>
           `;
           nameHtml = `<input type="text" value="${data.displayName || ""}" onblur="updateUserName('${doc.id}', this.value)" style="padding: 4px; border: 1px solid #ccc; width: 100%; border-radius: 4px;">`;
         }
@@ -297,6 +404,8 @@ if (true) {
         tr.innerHTML = `
                     <td style="padding: 10px; border-bottom: 1px solid #eee; ${data.isBlocked ? 'text-decoration: line-through; color: #999;' : ''}">${data.email}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee;">${nameHtml}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">${accountTeamHtml}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${statusHtml}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${selectHtml}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${actionBtns}</td>
                 `;
@@ -305,43 +414,14 @@ if (true) {
     });
   };
 
-  const toastContainer =
-    document.getElementById("toast_container") ||
-    (function () {
-      const tc = document.createElement("div");
-      tc.id = "toast_container";
-      tc.style.position = "fixed";
-      tc.style.bottom = "20px";
-      tc.style.right = "20px";
-      tc.style.zIndex = "9999";
-      document.body.appendChild(tc);
-      return tc;
-    })();
-
-  const showToast = (msg, type = "info") => {
-    const t = document.createElement("div");
-    t.style.padding = "12px 20px";
-    t.style.marginTop = "10px";
-    t.style.borderRadius = "4px";
-    t.style.color = "#fff";
-    t.style.fontSize = "14px";
-    t.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
-    t.style.transition = "opacity 0.3s ease-in-out";
-    if (type === "error") t.style.backgroundColor = "#ef4444";
-    else if (type === "success") t.style.backgroundColor = "#10b981";
-    else t.style.backgroundColor = "#3b82f6";
-    t.innerText = msg;
-    toastContainer.appendChild(t);
-    setTimeout(() => {
-      t.style.opacity = "0";
-      setTimeout(() => t.remove(), 300);
-    }, 3000);
-  };
 
   window.updateUserRole = (userId, newRole) => {
     if (!auth.currentUser || currentUserRole !== "admin") return;
     updateDoc(doc(db, "users", userId), { role: newRole })
-      .then(() => showToast("Cập nhật quyền thành công!", "success"))
+      .then(() => {
+        showToast("Cập nhật quyền thành công!", "success");
+        logAction("Cập nhật quyền", { targetId: userId, role: newRole });
+      })
       .catch((err) =>
         showToast("Lỗi cập nhật quyền: " + err.message, "error"),
       );
@@ -350,7 +430,10 @@ if (true) {
   window.updateUserName = (userId, newName) => {
     if (!auth.currentUser || currentUserRole !== "admin") return;
     updateDoc(doc(db, "users", userId), { displayName: newName })
-      .then(() => showToast("Cập nhật tên thành công!", "success"))
+      .then(() => {
+        showToast("Cập nhật tên thành công!", "success");
+        logAction("Cập nhật tên người dùng", { targetId: userId, name: newName });
+      })
       .catch((err) =>
         showToast("Lỗi cập nhật tên: " + err.message, "error"),
       );
@@ -361,7 +444,10 @@ if (true) {
     const actionStr = currentStatus ? "Mở chặn" : "Chặn";
     if (confirm(`Bạn có chắc chắn muốn ${actionStr} user này không?`)) {
       updateDoc(doc(db, "users", userId), { isBlocked: !currentStatus })
-        .then(() => showToast(`${actionStr} user thành công!`, "success"))
+        .then(() => {
+          showToast(`${actionStr} user thành công!`, "success");
+          logAction(actionStr + " người dùng", { targetId: userId });
+        })
         .catch((err) =>
           showToast(`Lỗi ${actionStr} user: ` + err.message, "error"),
         );
@@ -372,9 +458,33 @@ if (true) {
     if (!auth.currentUser || currentUserRole !== "admin") return;
     if (confirm("Bạn có chắc chắn muốn xóa user này không?")) {
       deleteDoc(doc(db, "users", userId))
-        .then(() => showToast("Xóa user thành công!", "success"))
+        .then(() => {
+          showToast("Xóa user thành công!", "success");
+          logAction("Xóa người dùng", { targetId: userId });
+        })
         .catch((err) =>
           showToast("Lỗi xóa user: " + err.message, "error"),
+        );
+    }
+  };
+
+  window.approveUser = (userId, userEmail) => {
+    if (!auth.currentUser || currentUserRole !== "admin") return;
+    if (confirm("Phê duyệt cho người dùng này sử dụng hệ thống?")) {
+      updateDoc(doc(db, "users", userId), { status: "approved" })
+        .then(() => {
+           showToast("Phê duyệt thành công!", "success");
+           logAction("Phê duyệt người dùng", { targetEmail: userEmail });
+           addDoc(collection(db, "mail"), {
+              to: userEmail,
+              message: {
+                 subject: `[Lucky Shop] Tài khoản của bạn đã được phê duyệt`,
+                 html: `<p>Xin chào,</p><p>Tài khoản đại lý / thành viên của bạn đã được Admin phê duyệt thành công.</p><p>Bạn đã có thể đăng nhập và sử dụng hệ thống tính toán dòng tiền.</p>`
+              }
+           });
+        })
+        .catch((err) =>
+          showToast("Lỗi phê duyệt: " + err.message, "error"),
         );
     }
   };
@@ -393,7 +503,9 @@ if (true) {
         email: email,
         displayName: name,
         role: role,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        status: "approved",
+        isProfileComplete: true
       })
       .then(() => {
         showToast("Thêm User thành công!", "success");
@@ -422,6 +534,7 @@ if (true) {
           loginError.style.display = "none";
           loginEmailInput.value = "";
           loginPwdInput.value = "";
+          logAction("Đăng nhập (Email)", { result: "success" });
         })
         .catch((error) => {
           if (
@@ -436,6 +549,7 @@ if (true) {
                 loginError.style.display = "none";
                 loginEmailInput.value = "";
                 loginPwdInput.value = "";
+                logAction("Đăng ký thành viên mới", { result: "success" });
               })
               .catch((createError) => {
                 if (createError.code === "auth/email-already-in-use") {
@@ -468,6 +582,7 @@ if (true) {
         .then((result) => {
           loginModal.style.display = "none";
           loginError.style.display = "none";
+          logAction("Đăng nhập (Google)", { result: "success" });
         })
         .catch((error) => {
           loginError.innerText = "Đăng nhập thất bại: " + error.message;
@@ -499,6 +614,8 @@ if (true) {
             displayName: user.displayName || user.email,
             role: isSuperAdmin ? "admin" : "user",
             createdAt: serverTimestamp(),
+            status: isSuperAdmin ? "approved" : "new",
+            isProfileComplete: isSuperAdmin ? true : false,
           });
         }
       });
@@ -511,11 +628,37 @@ if (true) {
             showToast("Tài khoản của bạn đã bị khóa.", "error");
             return;
           }
-          currentUserRole =
-            user.email === "vinh.ngtienmdb@gmail.com" ||
-            user.email === "admin@admin.com"
-              ? "admin"
-              : data.role || "user";
+          
+          const isSuperAdmin = user.email === "vinh.ngtienmdb@gmail.com" || user.email === "admin@admin.com";
+          let isApproved = false;
+          
+          if (!isSuperAdmin) {
+             if (!data.isProfileComplete) {
+                document.getElementById("profile_modal").style.display = "flex";
+                document.getElementById("main_dashboard").style.display = "none";
+                document.getElementById("require_login_overlay").style.display = "none";
+                document.getElementById("pending_modal").style.display = "none";
+             } else if (data.status === "pending" || !data.status || data.status === "new") {
+                document.getElementById("profile_modal").style.display = "none";
+                document.getElementById("pending_modal").style.display = "flex";
+                document.getElementById("main_dashboard").style.display = "none";
+                document.getElementById("require_login_overlay").style.display = "none";
+             } else if (data.status === "approved") {
+                isApproved = true;
+                document.getElementById("profile_modal").style.display = "none";
+                document.getElementById("pending_modal").style.display = "none";
+                document.getElementById("main_dashboard").style.display = ""; 
+                document.getElementById("require_login_overlay").style.display = "none";
+             }
+          } else {
+             isApproved = true;
+             document.getElementById("profile_modal").style.display = "none";
+             document.getElementById("pending_modal").style.display = "none";
+             document.getElementById("main_dashboard").style.display = "";
+             document.getElementById("require_login_overlay").style.display = "none";
+          }
+
+          currentUserRole = isSuperAdmin ? "admin" : data.role || "user";
 
           const userDefaultRankSelect =
             document.getElementById("user_default_rank");
@@ -584,6 +727,11 @@ if (true) {
       });
     } else {
       currentUserRole = "user";
+      document.getElementById("require_login_overlay").style.display = "flex";
+      document.getElementById("profile_modal").style.display = "none";
+      document.getElementById("pending_modal").style.display = "none";
+      if(mainDashboard) mainDashboard.style.display = "none";
+
       if (btnLogin) btnLogin.style.display = "flex";
       if (btnLogout) btnLogout.style.display = "none";
       
@@ -607,6 +755,63 @@ if (true) {
       }
     }
   });
+
+  const btnSubmitProfile = document.getElementById("btn_submit_profile");
+  if (btnSubmitProfile) {
+    btnSubmitProfile.addEventListener("click", () => {
+      if(!auth.currentUser) return;
+      const account = document.getElementById("profile_lucky_account").value.trim();
+      const team = document.getElementById("profile_team").value.trim();
+      const errEl = document.getElementById("profile_error");
+      
+      if(!account || !team) {
+         errEl.innerText = "Vui lòng nhập đầy đủ thông tin";
+         errEl.style.display = "block";
+         return;
+      }
+      errEl.style.display = "none";
+      btnSubmitProfile.innerText = "Đang gửi...";
+      btnSubmitProfile.disabled = true;
+      
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      updateDoc(userRef, {
+         luckyShopAccount: account,
+         luckyShopTeam: team,
+         isProfileComplete: true,
+         status: "pending"
+      }).then(() => {
+         // Yêu cầu tự động gửi mail
+         addDoc(collection(db, "mail"), {
+            to: "vinh.ngtienmdb@gmail.com",
+            message: {
+               subject: `[Lucky Shop] Yêu cầu phê duyệt mới từ: ${auth.currentUser.email}`,
+               html: `<p>Có người dùng mới yêu cầu phê duyệt sử dụng hệ thống.</p>
+                      <ul>
+                        <li>Email: ${auth.currentUser.email}</li>
+                        <li>Tên: ${auth.currentUser.displayName || ''}</li>
+                        <li>Tài khoản Lucky Shop: ${account}</li>
+                        <li>Team: ${team}</li>
+                      </ul>
+                      <p>Vui lòng đăng nhập hệ thống để phê duyệt cho User này.</p>`
+            }
+         });
+         logAction("Gửi yêu cầu phê duyệt", { luckyShopAccount: account, luckyShopTeam: team });
+         btnSubmitProfile.innerText = "Gửi yêu cầu phê duyệt";
+         btnSubmitProfile.disabled = false;
+         showToast("Đã gửi yêu cầu thành công!", "success");
+      }).catch(e => {
+         errEl.innerText = "Lỗi gửi yêu cầu: " + e.message;
+         errEl.style.display = "block";
+         btnSubmitProfile.innerText = "Gửi yêu cầu phê duyệt";
+         btnSubmitProfile.disabled = false;
+      });
+    });
+  }
+
+  const btnLogoutFromPending = document.getElementById("btn_logout_from_pending");
+  if (btnLogoutFromPending) {
+    btnLogoutFromPending.addEventListener("click", () => signOut(auth));
+  }
 
   onSnapshot(doc(db, "configs", "main"), (docSnap) => {
     if (docSnap.exists()) {
@@ -689,7 +894,10 @@ if (true) {
       };
 
       setDoc(doc(db, "configs", "main"), newConfig, { merge: true })
-        .then(() => showToast("Đã lưu các số liệu trên màn hình thành mặc định hệ thống thành công!", "success"))
+        .then(() => {
+          showToast("Đã lưu các số liệu trên màn hình thành mặc định hệ thống thành công!", "success");
+          logAction("Lưu màn hình mặc định", newConfig);
+        })
         .catch((err) => showToast("Lỗi khi lưu: " + err.message, "error"));
     });
   }
@@ -731,12 +939,13 @@ if (true) {
       };
 
       setDoc(doc(db, "configs", "main"), newConfig, { merge: true })
-        .then(() =>
+        .then(() => {
           showToast(
             "Lưu cấu hình thành công! Mọi người dùng trên hệ thống sẽ tự động thấy hệ số mới.",
             "success",
-          ),
-        )
+          );
+          logAction("Cập nhật cấu hình hệ thống", newConfig);
+        })
         .catch((err) => showToast("Lỗi khi lưu: " + err.message, "error"));
     });
   }
@@ -824,6 +1033,8 @@ const calc = {
 
 const formatNumberTable = (num) =>
   new Intl.NumberFormat("vi-VN").format(Math.round(num));
+
+let lastCalculatedBreakEvenDay = null;
 
 const calculate = () => {
   // Read Table A Inputs
@@ -1180,6 +1391,7 @@ const calculate = () => {
   let chartCapital = [];
 
   let isBreakEvenAdded = false;
+  let currentCalculationBreakEvenDay = null;
 
   for (let day = 1; day <= calcDays; day++) {
     const genLixi = currBalance * dailyLuckyRate;
@@ -1235,6 +1447,7 @@ const calculate = () => {
     }
 
     if (!isBreakEvenAdded && totalCash >= needToCover && needToCover > 0) {
+      currentCalculationBreakEvenDay = day;
       if (day % 30 !== 0 && day !== calcDays) {
         // Insert break-even into chart data if not already falling exactly on a month's boundary
         chartLabels.push(`Hòa Vốn (T${Math.ceil(day / 30)}, Ngày ${day})`);
@@ -1250,6 +1463,27 @@ const calculate = () => {
   }
 
   calc.timelineBody.innerHTML = htmlContent;
+
+  if (lastCalculatedBreakEvenDay !== null) {
+      if (currentCalculationBreakEvenDay !== null && lastCalculatedBreakEvenDay !== currentCalculationBreakEvenDay && lastCalculatedBreakEvenDay !== -1) {
+          showToast(`🎉 Cập nhật thay đổi! Lộ trình hòa vốn chuyển sang Ngày ${currentCalculationBreakEvenDay}`, "success");
+          const beBanner = document.getElementById("s_linearDays");
+          if (beBanner) {
+              beBanner.classList.add("flash-effect");
+              setTimeout(() => {
+                  beBanner.classList.remove("flash-effect");
+              }, 1500);
+          }
+      } else if (currentCalculationBreakEvenDay === null && lastCalculatedBreakEvenDay !== -1) {
+          showToast(`⚠️ Với thay đổi hiện tại, hệ thống dự kiến Không Thể Hòa Vốn!`, "error");
+      }
+  }
+  
+  if (currentCalculationBreakEvenDay !== null) {
+      lastCalculatedBreakEvenDay = currentCalculationBreakEvenDay;
+  } else {
+      lastCalculatedBreakEvenDay = -1;
+  }
 
   // Reapply filter
   const statusFilterEl = document.getElementById("status_filter");

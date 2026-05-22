@@ -434,6 +434,42 @@
        </div>
     </div>
 
+    <div id="require_login_overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 900; justify-content: center; align-items: center;">
+       <div style="text-align: center; max-width: 400px; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+           <div style="font-size: 3.5rem; margin-bottom: 15px;">🔐</div>
+           <h2 style="color: #333; margin-bottom: 15px; font-size: 1.5rem;">Yêu Cầu Đăng Nhập</h2>
+           <p style="color: #666; font-size: 1rem; margin-bottom: 25px; line-height: 1.5;">Hệ thống yêu cầu đăng nhập để sử dụng tính năng tính toán dòng tiền, hoa hồng và phân tích điểm hòa vốn.</p>
+           <button onclick="document.getElementById('btn_login').click()" style="padding: 12px 30px; background: #2563eb; color: white; border: none; border-radius: 30px; font-weight: bold; font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(37,99,235,0.2);">
+               🔐 Đăng nhập ngay
+           </button>
+       </div>
+    </div>
+
+    <div id="profile_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1500; justify-content: center; align-items: center;">
+       <div style="background: white; padding: 35px 30px; border-radius: 12px; width: 400px; max-width: 90vw; color: black; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+           <h3 style="margin-bottom: 10px; text-align: center; font-size: 1.3rem; color: #111;">Hoàn thiện thông tin</h3>
+           <p style="font-size: 0.95rem; color: #555; margin-bottom: 25px; text-align: center; line-height: 1.5;">Vui lòng cập nhật thông tin cá nhân của bạn để gửi yêu cầu phê duyệt sử dụng hệ thống.</p>
+           
+           <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #444; margin-bottom: 8px;">Tài khoản Lucky Shop</label>
+           <input type="text" id="profile_lucky_account" placeholder="Nhập tài khoản (ID/SĐT/Email)..." style="width: 100%; margin-bottom: 20px; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 1rem; outline: none;">
+           
+           <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #444; margin-bottom: 8px;">Tên Team / Đội nhóm</label>
+           <input type="text" id="profile_team" placeholder="Nhập tên Team của bạn..." style="width: 100%; margin-bottom: 25px; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 1rem; outline: none;">
+           
+           <button id="btn_submit_profile" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: background 0.2s;">Gửi yêu cầu phê duyệt</button>
+           <div id="profile_error" style="color: #ef4444; font-size: 0.85rem; margin-top: 15px; text-align: center; display: none; font-weight: 500;"></div>
+       </div>
+    </div>
+
+    <div id="pending_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 900; justify-content: center; align-items: center;">
+       <div style="text-align: center; max-width: 450px; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+           <div style="font-size: 4rem; margin-bottom: 20px; color: #f59e0b;">⏳</div>
+           <h2 style="color: #1f2937; margin-bottom: 15px; font-size: 1.6rem;">Đang chờ phê duyệt</h2>
+           <p style="color: #4b5563; font-size: 1.05rem; margin-bottom: 25px; line-height: 1.6;">Yêu cầu tạo tài khoản của bạn đã được ghi nhận thành công và đang chờ Admin phê duyệt. Khi hệ thống duyệt, bạn sẽ nhận được thông báo qua Email.</p>
+           <button id="btn_logout_from_pending" style="padding: 10px 25px; background: #e5e7eb; color: #4b5563; border: none; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;">Đăng xuất</button>
+       </div>
+    </div>
+
     <!-- Admin Modal -->
     <div id="admin_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
        <div style="background: white; border-radius: 10px; width: 900px; max-width: 95vw; height: 85vh; color: black; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden;">
@@ -448,6 +484,7 @@
                    <button class="admin-tab active" data-target="admin_tab_config" style="padding: 12px 20px; text-align: left; background: #e2e8f0; border: none; cursor: pointer; border-left: 3px solid #2563eb; font-weight: 500;">⚙️ Cấu Hình</button>
                    <button class="admin-tab" data-target="admin_tab_users" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">👥 Người Dùng</button>
                    <button class="admin-tab" data-target="admin_tab_roles" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">🏅 Chức Danh</button>
+                   <button class="admin-tab" data-target="admin_tab_history" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">📜 Lịch Sử HT</button>
                </div>
                
                <!-- Content Area -->
@@ -561,7 +598,9 @@
                                    <tr>
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">Email</th>
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">Tên</th>
-                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Quyền Quản Trị</th>
+                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">LS Account / Team</th>
+                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Trạng Thái</th>
+                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Quyền</th>
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Hành Động</th>
                                    </tr>
                                </thead>
@@ -620,6 +659,27 @@
                            <button id="btn_save_roles" style="width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 5px; font-weight: 600; margin-top: 20px; cursor: pointer;">
                                💾 Lưu Chức Danh & Tỷ Lệ
                            </button>
+                       </div>
+                   </div>
+
+                   <!-- Tab 4: Lịch Sử Hệ Thống -->
+                   <div id="admin_tab_history" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
+                       <h2 class="card-title">📜 Lịch Sử Hoạt Động Của Hệ Thống</h2>
+                       <p class="subtitle-note">Lưu trữ các thao tác quan trọng của người dùng</p>
+                       <div style="flex: 1; overflow-y: auto; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-top: 10px;">
+                           <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                               <thead style="background: #e2e8f0;">
+                                   <tr>
+                                       <th style="padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; width: 140px;">Thời Gian</th>
+                                       <th style="padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; width: 220px;">Email</th>
+                                       <th style="padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Hoạt Động</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="history_table_body">
+                                   <!-- History injected here -->
+                                   <tr><td colspan="3" style="text-align: center; padding: 20px; color: #666;">Chưa có dữ liệu</td></tr>
+                               </tbody>
+                           </table>
                        </div>
                    </div>
                </div>
