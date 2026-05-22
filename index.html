@@ -2,11 +2,26 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Lucky Shop - Financial Analytics Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
     <!-- Firebase SDK will be loaded as module in app.js -->
 </head>
 <body>
@@ -718,7 +733,7 @@
                            <button id="btn_export_history" style="padding: 8px 15px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">📥 Xuất CSV</button>
                        </div>
                        <div style="flex: 1; overflow-y: auto; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-top: 10px;">
-                           <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                           <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
                                <thead style="background: #e2e8f0;">
                                    <tr>
                                        <th style="padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; width: 140px;">Thời Gian</th>
@@ -747,6 +762,50 @@
             </div>
             <div id="tracker_content" style="padding: 20px; overflow-y: auto; flex: 1;">
                 <!-- Content injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Input Modal (Tracker) -->
+    <div id="day_input_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10005; justify-content: center; align-items: center; padding: 15px;">
+        <div style="background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="margin-top:0; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 10px; text-align: center; color: #334155;" id="di_title">Nhập Lì Xì</h3>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem;">
+                <span style="color:#64748b;">Số dư đầu ngày:</span>
+                <span id="di_start_bal" style="font-weight:600; color:#334155;"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.95rem;">
+                <span style="color:#64748b;">Dự kiến hôm nay:</span>
+                <span id="di_expected" style="font-weight:600; color:#8b5cf6;"></span>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; color:#64748b; font-size: 0.95rem; margin-bottom: 5px;">Thực nhận:</label>
+                <div style="display: flex; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding-right: 10px;">
+                    <input type="number" id="di_actual_input" placeholder="0" style="width: 100%; padding: 10px; border: none; background: transparent; font-size: 1.2rem; font-weight: bold; color: #2563eb; outline: none; text-align: right;">
+                    <span style="color: #64748b; font-weight: 500;">VNĐ</span>
+                </div>
+            </div>
+            
+            <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed #cbd5e1;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem;">
+                    <span style="color:#64748b;">Lũy kế dự tính:</span>
+                    <span id="di_accumulated" style="font-weight:700; color:#0ea5e9;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem;">
+                    <span style="color:#64748b;">Số dư cuối ngày:</span>
+                    <span id="di_end_bal" style="font-weight:700; color:#334155;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                    <span style="color:#64748b;">Trạng thái:</span>
+                    <span id="di_status" style="font-weight:700; text-align: right;"></span>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button onclick="document.getElementById('day_input_modal').style.display='none'" style="flex: 1; background:#e2e8f0; border:none; padding:12px; border-radius:8px; font-weight:bold; color:#475569; cursor:pointer; font-size: 0.95rem;">Hủy</button>
+                <button id="btn_save_di" style="flex: 1; background:#10b981; border:none; padding:12px; border-radius:8px; font-weight:bold; color:white; cursor:pointer; font-size: 0.95rem; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">Lưu</button>
             </div>
         </div>
     </div>

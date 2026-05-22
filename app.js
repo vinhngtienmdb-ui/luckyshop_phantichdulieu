@@ -2322,46 +2322,33 @@ const renderTracker = (defaultDate = "") => {
             <div>
                 <strong>Mục tiêu bù:</strong> <span style="color:#ef4444; font-weight:bold; font-size: 1.1rem;">${t_formatVND(trackerProfile.needToCover)}</span>
             </div>
-            <div>
-                <button id="btn_save_tracker" style="background:#10b981; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">💾 Lưu & Tính toán</button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
+            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">Thực Nhận (Cộng dồn)</div>
+                <div id="tk_summary_actual" style="font-size: 1.2rem; font-weight: bold; color: #10b981;">0 đ</div>
+            </div>
+            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">Còn Phải Bù</div>
+                <div id="tk_summary_remain" style="font-size: 1.2rem; font-weight: bold; color: #ef4444;">0 đ</div>
+            </div>
+            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">Tiến Độ Hòa Vốn</div>
+                <div id="tk_summary_progress" style="font-size: 1.2rem; font-weight: bold; color: #3b82f6;">0%</div>
             </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
-                <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">Thực Nhận (Cộng dồn)</div>
-                <div id="tk_summary_actual" style="font-size: 1.4rem; font-weight: bold; color: #10b981;">0 đ</div>
-            </div>
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
-                <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">Còn Phải Bù</div>
-                <div id="tk_summary_remain" style="font-size: 1.4rem; font-weight: bold; color: #ef4444;">0 đ</div>
-            </div>
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
-                <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">Tiến Độ Hòa Vốn</div>
-                <div id="tk_summary_progress" style="font-size: 1.4rem; font-weight: bold; color: #3b82f6;">0%</div>
-            </div>
+        <div class="chart-container" style="margin-bottom: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; position: relative; width: 100%;">
+            <canvas id="trackerChartCanvas" style="width: 100%; min-height: 200px;"></canvas>
         </div>
         
-        <div style="margin-bottom: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-            <canvas id="trackerChartCanvas" style="width: 100%; height: 300px; max-height: 300px;"></canvas>
-        </div>
-        
-        <div class="table-container" style="max-height: 60vh; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px;">
-            <table class="data-table" style="width: 100%; white-space: nowrap; font-size: 0.9rem;">
-                <thead>
-                    <tr style="position: sticky; top: 0; background: #f8fafc; z-index: 10;">
-                        <th>Ngày</th>
-                        <th>Số dư đầu ngày</th>
-                        <th>Phát sinh (dự kiến)</th>
-                        <th>Lì xì thực nhận</th>
-                        <th>Lũy kế Tiền mặt</th>
-                        <th>Số dư cuối ngày</th>
-                        <th>Trạng thái (Lời/ Lỗ)</th>
-                    </tr>
-                </thead>
-                <tbody id="tracker_tbody">
-                </tbody>
-            </table>
+        <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="font-weight: bold; color: #334155;">📅 Chọn ngày:</label>
+                <select id="tk_day_select" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; font-weight: bold; color: #2563eb; font-size: 1rem;"></select>
+            </div>
+            <button id="btn_open_day_input" style="background: #8b5cf6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.4);">📝 Nhập liệu / Cập nhật</button>
         </div>
     `;
 
@@ -2369,7 +2356,7 @@ const renderTracker = (defaultDate = "") => {
   
   setupProfileListeners();
 
-  const tbody = document.getElementById("tracker_tbody");
+  const daySelect = document.getElementById("tk_day_select");
 
   let currBalance = trackerProfile.luckyBalance;
   let totalCash = 0;
@@ -2383,7 +2370,7 @@ const renderTracker = (defaultDate = "") => {
 
   const startObj = new Date(trackerProfile.startDate);
 
-  let trHtml = "";
+  let gridHtml = "";
   
   // For Chart
   let tkLabels = [];
@@ -2391,6 +2378,12 @@ const renderTracker = (defaultDate = "") => {
   let tkExpectedData = [];
   let tkExpectedCash = 0;
   let tempExpectedBalance = trackerProfile.luckyBalance;
+
+  // We will store day data to display in the modal
+  window.trackerDayDetails = {};
+  
+  let selectHtml = "";
+  let lastDayFound = 1;
 
   for (let day = 1; day <= maxDay; day++) {
     const currentDate = new Date(startObj);
@@ -2405,6 +2398,8 @@ const renderTracker = (defaultDate = "") => {
     const actualInput = trackerProfile.actualLixi[day];
     const isInputted = actualInput !== undefined && actualInput !== null;
     let genLixi = isInputted ? parseFloat(actualInput) : 0;
+
+    if (isInputted) lastDayFound = day;
 
     totalCash += genLixi;
     let endBalance = currBalance - genLixi;
@@ -2423,35 +2418,61 @@ const renderTracker = (defaultDate = "") => {
         tkActualData.push(null);
     }
 
-    let status = "";
-    let rowClass = "";
+    let statusHtml = "";
 
     if (totalCash >= trackerProfile.needToCover) {
       const profit = totalCash - trackerProfile.needToCover;
-      status = `<span style="color:#10b981; font-weight: bold;">✅ Lãi: ${t_formatNumber(profit)}</span>`;
-      rowClass = "row-success";
+      statusHtml = `<span style="color:#10b981; font-weight: bold;">✅ Lãi: ${t_formatNumber(profit)}</span>`;
     } else {
-      status = `<span style="color:#ef4444; font-weight: 500;">⏳ Cần bù: ${t_formatNumber(trackerProfile.needToCover - totalCash)}</span>`;
+      statusHtml = `<span style="color:#ef4444; font-weight: 500;">⏳ Cần bù: ${t_formatNumber(trackerProfile.needToCover - totalCash)}</span>`;
     }
 
-    trHtml += `
-            <tr class="${rowClass}">
-                <td style="text-align:center;">Ngày ${day} <br><small style="color:#888;">${dateStr}</small></td>
-                <td style="text-align:right;">${t_formatNumber(currBalance)}</td>
-                <td style="text-align:right; color:#888;">${t_formatNumber(expectedLixi)}</td>
-                <td style="text-align:center;">
-                    <input type="number" class="tracker-input" data-day="${day}" value="${isInputted ? actualInput : 0}" placeholder="0" style="width: 100px; padding: 6px; text-align: right; border: 1px solid ${isInputted ? '#3b82f6' : '#d1d5db'}; border-radius: 4px; font-weight:${isInputted ? "bold" : "normal"}; color:${isInputted ? '#3b82f6' : 'inherit'};">
-                </td>
-                <td style="text-align:right; color:#0284c7; font-weight: bold;">${t_formatNumber(totalCash)}</td>
-                <td style="text-align:right; font-weight: 500;">${t_formatNumber(endBalance)}</td>
-                <td>${status}</td>
-            </tr>
-        `;
+    window.trackerDayDetails[day] = {
+        title: `Ngày ${day} (${dateStr})`,
+        startBal: t_formatNumber(currBalance),
+        expected: t_formatNumber(expectedLixi),
+        actual: isInputted ? t_formatNumber(genLixi) : '-',
+        rawActual: isInputted ? genLixi : '',
+        accumulated: t_formatNumber(totalCash),
+        endBal: t_formatNumber(endBalance),
+        status: statusHtml
+    };
+    
+    selectHtml += `<option value="${day}">Ngày ${day} - ${dateStr} ${isInputted ? '✅' : ''}</option>`;
 
     currBalance = endBalance;
   }
 
-  tbody.innerHTML = trHtml;
+  if (daySelect) {
+      daySelect.innerHTML = selectHtml;
+      daySelect.value = Math.min(lastDayFound + (lastDayFound < maxDay && maxInputDay >=1 ? 1 : 0), maxDay);
+  }
+  
+  const btnOpenDayInput = document.getElementById("btn_open_day_input");
+  if (btnOpenDayInput) {
+      // Recreate to avoid multiple bindings
+      const newBtn = btnOpenDayInput.cloneNode(true);
+      btnOpenDayInput.parentNode.replaceChild(newBtn, btnOpenDayInput);
+      newBtn.addEventListener("click", () => {
+          const day = daySelect.value;
+          const details = window.trackerDayDetails[day];
+          if (details) {
+              document.getElementById('di_title').innerText = details.title;
+              document.getElementById('di_start_bal').innerText = details.startBal + ' VNĐ';
+              document.getElementById('di_expected').innerText = details.expected + ' VNĐ';
+              
+              const inputEl = document.getElementById('di_actual_input');
+              inputEl.value = details.rawActual;
+              inputEl.dataset.day = day;
+              
+              document.getElementById('di_accumulated').innerText = details.accumulated + ' VNĐ';
+              document.getElementById('di_end_bal').innerText = details.endBal + ' VNĐ';
+              document.getElementById('di_status').innerHTML = details.status;
+              
+              document.getElementById('day_input_modal').style.display = 'flex';
+          }
+      });
+  }
   
   // Update Summary Cards
   const eSummaryActual = document.getElementById("tk_summary_actual");
@@ -2520,27 +2541,6 @@ const renderTracker = (defaultDate = "") => {
           });
       }
   }, 50);
-
-  const btnSave = document.getElementById("btn_save_tracker");
-  if (btnSave) {
-    btnSave.addEventListener("click", () => {
-      const { profiles, activeId } = loadTrackerData();
-      if (!profiles[activeId]) return;
-
-      const inputsList = document.querySelectorAll(".tracker-input");
-      inputsList.forEach((inp) => {
-        const day = parseInt(inp.getAttribute("data-day"));
-        const val = inp.value;
-        if (val !== "") {
-          profiles[activeId].actualLixi[day] = parseFloat(val);
-        } else {
-          profiles[activeId].actualLixi[day] = 0;
-        }
-      });
-      saveTrackerData(profiles, activeId);
-      renderTracker();
-    });
-  }
 };
 
 const setupProfileListeners = () => {
@@ -2776,6 +2776,27 @@ if (btnCloseTracker) {
   btnCloseTracker.addEventListener("click", () => {
     if (trackerModal) trackerModal.style.display = "none";
   });
+}
+
+const btnSaveDi = document.getElementById("btn_save_di");
+if (btnSaveDi) {
+    btnSaveDi.addEventListener("click", () => {
+        const inputEl = document.getElementById('di_actual_input');
+        const day = parseInt(inputEl.dataset.day);
+        if (isNaN(day)) return;
+        const val = inputEl.value;
+        const { profiles, activeId } = loadTrackerData();
+        if (!profiles || !profiles[activeId]) return;
+        
+        if (val !== "") {
+            profiles[activeId].actualLixi[day] = parseFloat(val);
+        } else {
+            delete profiles[activeId].actualLixi[day];
+        }
+        saveTrackerData(profiles, activeId);
+        document.getElementById('day_input_modal').style.display = 'none';
+        renderTracker();
+    });
 }
 
 // Initial setup
