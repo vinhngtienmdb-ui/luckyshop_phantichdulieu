@@ -131,7 +131,14 @@ if (true) {
   let userSnapshotUnsub = null;
   let usersListUnsub = null;
   let historyListUnsub = null;
+  let currentIp = "Đang lấy...";
   
+  // Lấy IP của người dùng
+  fetch('https://api.ipify.org?format=json')
+    .then(r => r.json())
+    .then(data => { currentIp = data.ip; })
+    .catch(err => console.error("Lỗi lấy IP:", err));
+
   window.logAction = (action, metadata = {}) => {
     if (!auth.currentUser) return;
     addDoc(collection(db, "history"), {
@@ -139,42 +146,80 @@ if (true) {
       uid: auth.currentUser.uid,
       action: action,
       metadata: metadata,
+      ip: currentIp,
       createdAt: serverTimestamp()
     }).catch(err => console.error("Error logging action:", err));
+  };
+
+  let historyData = [];
+
+  const renderHistoryList = () => {
+    const historyTableBody = document.getElementById("history_table_body");
+    if (!historyTableBody) return;
+    
+    const searchInput = document.getElementById("history_search_input");
+    const filterText = searchInput ? searchInput.value.toLowerCase() : "";
+    
+    const filtered = historyData.filter(data => {
+        const email = (data.email || "").toLowerCase();
+        const action = (data.action || "").toLowerCase();
+        return email.includes(filterText) || action.includes(filterText);
+    });
+
+    if (filtered.length === 0) {
+      historyTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #666;">Chưa có dữ liệu</td></tr>';
+      return;
+    }
+    
+    historyTableBody.innerHTML = "";
+    filtered.forEach((data) => {
+      const tr = document.createElement("tr");
+      
+      let metaHtml = "";
+      if (data.metadata && Object.keys(data.metadata).length > 0) {
+          metaHtml = `<br><small style="color: #666;">${JSON.stringify(data.metadata)}</small>`;
+      }
+      
+      tr.innerHTML = `
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${data.createdAtStr || "-"}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+           <div style="font-weight: 500;">${data.email || "Unknown"}</div>
+           <div style="color: #64748b; font-size: 0.8rem;">IP: ${data.ip || "Unknown"}</div>
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+           ${data.action || "-"}${metaHtml}
+        </td>
+      `;
+      historyTableBody.appendChild(tr);
+    });
   };
 
   const loadHistoryList = () => {
     if (!auth.currentUser || currentUserRole !== "admin") return;
     if (historyListUnsub) historyListUnsub();
 
+    const searchInput = document.getElementById("history_search_input");
+    if (searchInput) {
+        searchInput.removeEventListener("input", renderHistoryList);
+        searchInput.addEventListener("input", renderHistoryList);
+    }
+
     const q = query(collection(db, "history"), orderBy("createdAt", "desc"), limit(100));
     historyListUnsub = onSnapshot(q, (snapshot) => {
-      const historyTableBody = document.getElementById("history_table_body");
-      if (!historyTableBody) return;
-      
-      if (snapshot.empty) {
-        historyTableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #666;">Chưa có dữ liệu</td></tr>';
-        return;
-      }
-      
-      historyTableBody.innerHTML = "";
+      historyData = [];
       snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const tr = document.createElement("tr");
-        
-        let timeStr = "-";
-        if (data.createdAt) {
-          const date = data.createdAt.toDate();
-          timeStr = date.toLocaleString('vi-VN');
-        }
-        
-        tr.innerHTML = `
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">${timeStr}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">${data.email || "Unknown"}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">${data.action || "-"}</td>
-        `;
-        historyTableBody.appendChild(tr);
+          const data = docSnap.data();
+          let timeStr = "-";
+          if (data.createdAt) {
+              const date = data.createdAt.toDate();
+              timeStr = date.toLocaleString('vi-VN');
+          }
+          data.createdAtStr = timeStr;
+          historyData.push(data);
       });
+      renderHistoryList();
+    }, (error) => {
+      console.error("Lỗi lấy lịch sử:", error);
     });
   };
 
@@ -343,7 +388,7 @@ if (true) {
         data.nv,
       );
     }
-  });
+  }, (error) => console.error("Error reading roles config:", error));
 
   const loadUsersList = () => {
     if (!auth.currentUser || currentUserRole !== "admin") return;
@@ -411,7 +456,7 @@ if (true) {
                 `;
         userMgmtTableBody.appendChild(tr);
       });
-    });
+    }, (error) => console.error("Error loading users list:", error));
   };
 
 
@@ -592,13 +637,24 @@ if (true) {
   }
 
   if (btnLogout) {
-    btnLogout.addEventListener("click", () => signOut(auth));
+    btnLogout.addEventListener("click", () => {
+        logAction("Đăng xuất", {});
+        setTimeout(() => signOut(auth), 500);
+    });
   }
 
   onAuthStateChanged(auth, (user) => {
     if (userSnapshotUnsub) {
       userSnapshotUnsub();
       userSnapshotUnsub = null;
+    }
+    if (usersListUnsub) {
+      usersListUnsub();
+      usersListUnsub = null;
+    }
+    if (historyListUnsub) {
+      historyListUnsub();
+      historyListUnsub = null;
     }
 
     if (user) {
@@ -624,7 +680,8 @@ if (true) {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.isBlocked) {
-            signOut(auth);
+            logAction("Bi khóa tài khoản", {});
+            setTimeout(() => signOut(auth), 500);
             showToast("Tài khoản của bạn đã bị khóa.", "error");
             return;
           }
@@ -724,7 +781,7 @@ if (true) {
             if (typeof toggleAdminMode === "function") toggleAdminMode();
           }
         }
-      });
+      }, (error) => console.error("Error reading user data:", error));
     } else {
       currentUserRole = "user";
       document.getElementById("require_login_overlay").style.display = "flex";
@@ -810,7 +867,10 @@ if (true) {
 
   const btnLogoutFromPending = document.getElementById("btn_logout_from_pending");
   if (btnLogoutFromPending) {
-    btnLogoutFromPending.addEventListener("click", () => signOut(auth));
+    btnLogoutFromPending.addEventListener("click", () => {
+        logAction("Đăng xuất", { from: "pending state" });
+        setTimeout(() => signOut(auth), 500);
+    });
   }
 
   onSnapshot(doc(db, "configs", "main"), (docSnap) => {
@@ -865,7 +925,7 @@ if (true) {
 
       if (typeof calculate === "function") calculate();
     }
-  });
+  }, (error) => console.error("Error reading main config:", error));
 
   const btnPreviewPromo = document.getElementById("btn_preview_promo");
   if (btnPreviewPromo) {
