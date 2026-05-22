@@ -203,6 +203,28 @@ if (true) {
         searchInput.removeEventListener("input", renderHistoryList);
         searchInput.addEventListener("input", renderHistoryList);
     }
+    
+    const btnExportHistory = document.getElementById("btn_export_history");
+    if (btnExportHistory) {
+      btnExportHistory.onclick = () => {
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + "Ngày Giờ,Email,IP,Hành Động,Chi Tiết\n";
+        historyData.forEach(data => {
+            const timeStr = data.createdAtStr ? data.createdAtStr.replace(/,/g, "") : "";
+            const email = data.email || "";
+            const ip = data.ip || "";
+            const action = data.action || "";
+            const meta = data.metadata ? JSON.stringify(data.metadata).replace(/"/g, '""') : "";
+            csvContent += `"${timeStr}","${email}","${ip}","${action}","${meta}"\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `lich_su_he_thong_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+    }
 
     const q = query(collection(db, "history"), orderBy("createdAt", "desc"), limit(100));
     historyListUnsub = onSnapshot(q, (snapshot) => {
@@ -390,15 +412,41 @@ if (true) {
     }
   }, (error) => console.error("Error reading roles config:", error));
 
+  let usersDataList = [];
   const loadUsersList = () => {
     if (!auth.currentUser || currentUserRole !== "admin") return;
     if (usersListUnsub) usersListUnsub();
 
+    const btnExportUsers = document.getElementById("btn_export_users");
+    if (btnExportUsers) {
+      btnExportUsers.onclick = () => {
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + "Email,Tên,Vai Trò,Trạng Thái,Tài khoản LS,Team\n";
+        usersDataList.forEach(data => {
+            const email = data.email || "";
+            const name = data.displayName || "";
+            const role = data.role || "user";
+            const status = data.status || "new";
+            const lsAccount = data.luckyShopAccount || "";
+            const lsTeam = data.luckyShopTeam || "";
+            csvContent += `"${email}","${name}","${role}","${status}","${lsAccount}","${lsTeam}"\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `danh_sach_nguoi_dung_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+    }
+
     usersListUnsub = onSnapshot(collection(db, "users"), (snapshot) => {
       if (!userMgmtTableBody) return;
       userMgmtTableBody.innerHTML = "";
+      usersDataList = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
+        usersDataList.push(data);
         const tr = document.createElement("tr");
         const isSuperAdmin =
           data.email === "vinh.ngtienmdb@gmail.com" ||
@@ -1094,6 +1142,7 @@ const calc = {
   s_linearDays: document.getElementById("s_linearDays"),
   s_accLixi: document.getElementById("s_accLixi"),
   s_initialBal: document.getElementById("s_initialBal"),
+  s_netProfit: document.getElementById("s_netProfit"),
   s_roi: document.getElementById("s_roi"),
 
   timelineBody: document.getElementById("timelineBody"),
@@ -1446,6 +1495,9 @@ const calculate = () => {
   const s_accLixiSub = document.getElementById("s_accLixiSub");
   if (s_accLixiSub) s_accLixiSub.innerText = `Cộng dồn ${calcDays} ngày`;
 
+  const s_netProfitSub = document.getElementById("s_netProfitSub");
+  if (s_netProfitSub) s_netProfitSub.innerText = `Sau ${calcDays} ngày`;
+
   const s_roiSub = document.getElementById("s_roiSub");
   if (s_roiSub) s_roiSub.innerText = `Sau ${calcDays} ngày`;
 
@@ -1635,13 +1687,86 @@ const calculate = () => {
         },
       });
     }
+
+    if (window.commissionPieChartInstance) {
+      window.commissionPieChartInstance.destroy();
+    }
+    const ctxPie = document.getElementById("commissionPieChart");
+    if (ctxPie) {
+      const pieData = [a2, a3, a4, a5, a6, a7].map(v => Math.round(v));
+      const pieLabels = [
+        "HH Trực tiếp",
+        "HH Gián tiếp",
+        "HH Nhân viên",
+        "HH Quản lý",
+        "HH Giám đốc",
+        "HH Tổng GĐ"
+      ];
+      // Filter out zero values for cleaner chart
+      const filteredData = [];
+      const filteredLabels = [];
+      const backgroundColors = ["#3b82f6", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#06b6d4"];
+      const filteredColors = [];
+      
+      pieData.forEach((val, idx) => {
+        if (val > 0) {
+          filteredData.push(val);
+          filteredLabels.push(pieLabels[idx]);
+          filteredColors.push(backgroundColors[idx]);
+        }
+      });
+
+      window.commissionPieChartInstance = new Chart(ctxPie, {
+        type: "pie",
+        data: {
+          labels: filteredLabels,
+          datasets: [{
+            data: filteredData,
+            backgroundColor: filteredColors,
+            borderWidth: 1,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "right",
+              labels: { font: { size: 10 }, boxWidth: 12 }
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  let label = context.label || "";
+                  if (label) label += ": ";
+                  label += new Intl.NumberFormat("vi-VN").format(context.parsed) + " VNĐ";
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
   } catch (e) {
     console.error("Lỗi vẽ biểu đồ:", e.message);
   }
 
   // Post-loop stats
   calc.s_accLixi.innerText = formatVND(totalCash);
-  const roi = needToCover > 0 ? (totalCash - needToCover) / needToCover : 0;
+  const netProfitCash = totalCash - needToCover;
+  
+  if (calc.s_netProfit) {
+      calc.s_netProfit.innerText = formatVND(netProfitCash);
+      if (netProfitCash >= 0) {
+          calc.s_netProfit.className = "val text-purple";
+      } else {
+          calc.s_netProfit.className = "val text-danger";
+      }
+  }
+
+  const roi = needToCover > 0 ? netProfitCash / needToCover : 0;
   calc.s_roi.innerText = formatPercent(roi);
   if (roi >= 0) {
     calc.s_roi.className = "val text-purple";

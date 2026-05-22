@@ -250,6 +250,12 @@
                             <div class="fw-bold text-primary" id="b_needToCover">0</div>
                         </div>
                     </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e5e7eb;">
+                        <h4 style="text-align: center; font-size: 0.9rem; color: #64748b; margin-bottom: 10px;">Tỷ Trọng Phân Bổ Hoa Hồng</h4>
+                        <div style="position: relative; height: 180px; width: 100%;">
+                            <canvas id="commissionPieChart"></canvas>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- New User Setup Card -->
@@ -327,7 +333,7 @@
                 </div>
             </section>
 
-            <!-- Section 3: Break-even Banner + 4 Stats -->
+            <!-- Section 3: Break-even Banner + 5 Stats -->
             <div class="breakeven-banner">
                 <h4>🔥 ƯỚC TÍNH ĐIỂM HÒA VỐN</h4>
                 <div class="breakeven-value" id="s_linearDays">0 ngày</div>
@@ -350,8 +356,13 @@
                     <div class="val text-success" id="s_accLixi">0 đ</div>
                     <div class="sub" id="s_accLixiSub">Cộng dồn N ngày</div>
                 </div>
+                <div class="stat-card highlight-purple" style="border-color: #8b5cf6;">
+                    <h4>Lợi Nhuận Ròng (Dự Phóng)</h4>
+                    <div class="val text-purple" id="s_netProfit">0 đ</div>
+                    <div class="sub" id="s_netProfitSub">Sau N ngày</div>
+                </div>
                 <div class="stat-card highlight-purple">
-                    <h4>Lợi Nhuận Ròng (ROI)</h4>
+                    <h4>Tỷ Suất LN (ROI)</h4>
                     <div class="val text-purple" id="s_roi">0.0%</div>
                     <div class="sub" id="s_roiSub">Sau N ngày</div>
                 </div>
@@ -626,6 +637,7 @@
                                <option value="admin">Admin</option>
                            </select>
                            <button id="btn_add_user" style="padding: 8px 15px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Thêm User</button>
+                           <button id="btn_export_users" style="padding: 8px 15px; background: #10b981; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; white-space: nowrap;">📥 Xuất CSV</button>
                        </div>
                        <div class="table-responsive" style="flex: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px;">
                            <table class="data-table" style="width: 100%; text-align: left;">
@@ -703,6 +715,7 @@
                        <p class="subtitle-note">Lưu trữ các thao tác quan trọng của người dùng</p>
                        <div style="margin-top: 10px; display: flex; gap: 10px;">
                            <input type="text" id="history_search_input" placeholder="🔍 Tìm kiếm theo email hoặc hoạt động..." style="flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 0.9rem;">
+                           <button id="btn_export_history" style="padding: 8px 15px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">📥 Xuất CSV</button>
                        </div>
                        <div style="flex: 1; overflow-y: auto; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-top: 10px;">
                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
