@@ -2543,6 +2543,9 @@ if (toggleChart && chartContent && chartIcon) {
     ) {
       chartContent.style.display = "block";
       chartIcon.innerText = "▲";
+      if (window.profitChartInstance) {
+        window.profitChartInstance.resize();
+      }
     } else {
       chartContent.style.display = "none";
       chartIcon.innerText = "▼";
