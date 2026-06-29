@@ -27,6 +27,8 @@ import {
   query,
   orderBy,
   limit,
+  where,
+  getDocs,
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 import {
   getAuth,
@@ -454,7 +456,8 @@ if (true) {
       usersDataList = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        usersDataList.push(data);
+        const userData = { id: doc.id, ...data };
+        usersDataList.push(userData);
         const tr = document.createElement("tr");
         const isSuperAdmin =
           data.email === "vinh.ngtienmdb@gmail.com" ||
@@ -476,6 +479,9 @@ if (true) {
           selectHtml = `<span style="color: red; font-weight: bold;">Super Admin</span>`;
           nameHtml = data.displayName || "-";
           statusHtml = `<span style="color: #10b981; font-weight: bold;">Đã duyệt</span>`;
+          actionBtns = `
+            <button onclick="editUserDetail('${doc.id}')" style="background: #2563eb; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 0.85em; font-weight: 600;">⚙️ Thiết lập</button>
+          `;
         } else {
           const isAdmin = data.role === "admin";
           const isBlocked = data.isBlocked === true;
@@ -500,9 +506,12 @@ if (true) {
 
           actionBtns = `
             ${approveBtn}
-            <div style="display: flex; gap: 5px;">
-                <button onclick="toggleBlockUser('${doc.id}', ${isBlocked})" style="background: ${blockBtnColor}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; flex: 1;">${blockBtnText}</button>
-                <button onclick="deleteUser('${doc.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; flex: 1;">Xóa</button>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <button onclick="editUserDetail('${doc.id}')" style="background: #2563eb; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 0.85em; font-weight: 600;">⚙️ Thiết lập</button>
+                <div style="display: flex; gap: 5px; width: 100%;">
+                    <button onclick="toggleBlockUser('${doc.id}', ${isBlocked})" style="background: ${blockBtnColor}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.8em;">${blockBtnText}</button>
+                    <button onclick="deleteUser('${doc.id}')" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.8em;">Xóa</button>
+                </div>
             </div>
           `;
           nameHtml = `<input type="text" value="${data.displayName || ""}" onblur="updateUserName('${doc.id}', this.value)" style="padding: 4px; border: 1px solid #ccc; width: 100%; border-radius: 4px;">`;
@@ -521,6 +530,48 @@ if (true) {
     }, (error) => console.error("Error loading users list:", error));
   };
 
+  window.editingUserId = null;
+  window.editUserDetail = (userId) => {
+    window.editingUserId = userId;
+    const targetUser = usersDataList.find(u => u.id === userId);
+    if (!targetUser) return;
+    
+    const modal = document.getElementById("edit_profile_modal");
+    if (modal) {
+      modal.style.display = "flex";
+      
+      const modalTitle = modal.querySelector("h3");
+      if (modalTitle) {
+        modalTitle.innerText = `⚙️ Thiết Lập Tài Khoản: ${targetUser.email}`;
+      }
+      
+      const editTeam = document.getElementById("edit_profile_team");
+      const editCurrLixi = document.getElementById("edit_profile_curr_lixi");
+      const editLimit = document.getElementById("edit_profile_lucky_limit");
+      
+      if (editTeam) editTeam.value = targetUser.luckyShopTeam || "";
+      if (editCurrLixi) editCurrLixi.value = targetUser.currentLuckyBalance !== undefined ? targetUser.currentLuckyBalance : "";
+      if (editLimit) editLimit.value = targetUser.luckyLimit !== undefined ? targetUser.luckyLimit : "";
+      
+      const editInputEl = document.getElementById("edit_profile_lucky_account_input");
+      if (editInputEl) editInputEl.value = "";
+      
+      if (targetUser.luckyShopAccounts) {
+        editProfileAccounts = [...targetUser.luckyShopAccounts];
+      } else if (targetUser.luckyShopAccount) {
+        editProfileAccounts = targetUser.luckyShopAccount.split(",").map(s => s.trim()).filter(s => s !== "" && s !== "-");
+      } else {
+        editProfileAccounts = [];
+      }
+      renderEditAccountsList();
+      
+      const errDiv = document.getElementById("edit_profile_error");
+      if (errDiv) {
+          errDiv.style.display = "none";
+          errDiv.innerText = "";
+      }
+    }
+  };
 
   window.updateUserRole = (userId, newRole) => {
     if (!auth.currentUser || currentUserRole !== "admin") return;
@@ -602,6 +653,11 @@ if (true) {
       const email = newUserEmail.value.trim();
       const name = newUserName.value.trim();
       const role = newUserRole.value;
+      const accountVal = document.getElementById("new_user_account") ? document.getElementById("new_user_account").value.trim() : "";
+      const teamVal = document.getElementById("new_user_team") ? document.getElementById("new_user_team").value.trim() : "";
+      const balanceVal = document.getElementById("new_user_balance") ? parseFloat(document.getElementById("new_user_balance").value) : 0;
+      const limitVal = document.getElementById("new_user_limit") ? parseFloat(document.getElementById("new_user_limit").value) : 0;
+
       if (!email) {
         showToast("Vui lòng nhập Email", "error");
         return;
@@ -610,6 +666,11 @@ if (true) {
         email: email,
         displayName: name,
         role: role,
+        luckyShopAccount: accountVal,
+        luckyShopAccounts: accountVal ? [accountVal] : [],
+        luckyShopTeam: teamVal,
+        currentLuckyBalance: isNaN(balanceVal) ? 0 : balanceVal,
+        luckyLimit: isNaN(limitVal) ? 0 : limitVal,
         createdAt: serverTimestamp(),
         status: "approved",
         isProfileComplete: true
@@ -618,6 +679,10 @@ if (true) {
         showToast("Thêm User thành công!", "success");
         newUserEmail.value = "";
         newUserName.value = "";
+        if (document.getElementById("new_user_account")) document.getElementById("new_user_account").value = "";
+        if (document.getElementById("new_user_team")) document.getElementById("new_user_team").value = "";
+        if (document.getElementById("new_user_balance")) document.getElementById("new_user_balance").value = "";
+        if (document.getElementById("new_user_limit")) document.getElementById("new_user_limit").value = "";
       })
       .catch((err) => showToast("Lỗi thêm user: " + err.message, "error"));
     });
@@ -721,19 +786,55 @@ if (true) {
      if (user) {
        // Register or update user in Firestore
       const userRef = doc(db, "users", user.uid);
-      getDoc(userRef).then((docSnap) => {
+      getDoc(userRef).then(async (docSnap) => {
         if (!docSnap.exists()) {
-          const isSuperAdmin =
-            user.email === "vinh.ngtienmdb@gmail.com" ||
-            user.email === "admin@admin.com";
-          setDoc(userRef, {
-            email: user.email,
-            displayName: user.displayName || user.email,
-            role: isSuperAdmin ? "admin" : "user",
-            createdAt: serverTimestamp(),
-            status: isSuperAdmin ? "approved" : "new",
-            isProfileComplete: isSuperAdmin ? true : false,
-          });
+          try {
+            const q = query(collection(db, "users"), where("email", "==", user.email));
+            const querySnapshot = await getDocs(q);
+            let preCreatedData = null;
+            let preCreatedDocId = null;
+            
+            querySnapshot.forEach((d) => {
+              if (d.id !== user.uid) {
+                preCreatedData = d.data();
+                preCreatedDocId = d.id;
+              }
+            });
+            
+            if (preCreatedData) {
+              await setDoc(userRef, {
+                ...preCreatedData,
+                updatedAt: serverTimestamp()
+              });
+              await deleteDoc(doc(db, "users", preCreatedDocId));
+              showToast("Đã đồng bộ tài khoản đại lý thành công!", "success");
+            } else {
+              const isSuperAdmin =
+                user.email === "vinh.ngtienmdb@gmail.com" ||
+                user.email === "admin@admin.com";
+              await setDoc(userRef, {
+                email: user.email,
+                displayName: user.displayName || user.email,
+                role: isSuperAdmin ? "admin" : "user",
+                createdAt: serverTimestamp(),
+                status: isSuperAdmin ? "approved" : "new",
+                isProfileComplete: isSuperAdmin ? true : false,
+              });
+            }
+          } catch (err) {
+            console.error("Lỗi liên kết tài khoản pre-created:", err);
+            const isSuperAdmin =
+              user.email === "vinh.ngtienmdb@gmail.com" ||
+              user.email === "admin@admin.com";
+            await setDoc(userRef, {
+              email: user.email,
+              displayName: user.displayName || user.email,
+              role: isSuperAdmin ? "admin" : "user",
+              createdAt: serverTimestamp(),
+              status: isSuperAdmin ? "approved" : "new",
+              isProfileComplete: isSuperAdmin ? true : false,
+            });
+          }
         }
       });
 
@@ -1112,8 +1213,9 @@ if (true) {
               btnSaveEditProfile.disabled = true;
               btnSaveEditProfile.innerText = "Đang xử lý...";
               
+              const targetUid = window.editingUserId || auth.currentUser.uid;
               const accountStr = editProfileAccounts.join(", ");
-              await updateDoc(doc(db, "users", auth.currentUser.uid), {
+              await updateDoc(doc(db, "users", targetUid), {
                   luckyShopAccount: accountStr,
                   luckyShopAccounts: editProfileAccounts,
                   luckyShopTeam: team,
@@ -1122,6 +1224,7 @@ if (true) {
               });
               
               logAction("Cập nhật thiết lập tài khoản", { 
+                  targetUid: targetUid,
                   luckyShopAccount: accountStr,
                   luckyShopAccounts: editProfileAccounts, 
                   luckyShopTeam: team, 
@@ -1131,6 +1234,7 @@ if (true) {
               
               showToast("Cập nhật tài khoản thành công!", "success");
               document.getElementById("edit_profile_modal").style.display = "none";
+              window.editingUserId = null;
           }
       } catch (err) {
           console.error(err);
