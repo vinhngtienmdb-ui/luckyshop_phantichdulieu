@@ -7,6 +7,11 @@ const formatPercent = (num) => {
   return (num * 100).toFixed(1) + "%";
 };
 
+// Global variables for limit check and dropdown tracking
+let globalUsersList = [];
+let updateUcheckDropdowns = () => {};
+let runUcheckCalculations = () => {};
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 import {
   getFirestore,
@@ -89,7 +94,7 @@ if (true) {
   const btnLogin = document.getElementById("btn_login");
   const btnLogout = document.getElementById("btn_logout");
   const btnAdminPanel = document.getElementById("btn_admin_panel");
-  const btnSaveScreenDefaults = document.getElementById("btn_save_screen_defaults");
+
   const adminModal = document.getElementById("admin_modal");
   const btnCloseAdmin = document.getElementById("btn_close_admin");
   const userMgmtTableBody = document.getElementById("user_mgmt_table_body");
@@ -128,9 +133,12 @@ if (true) {
   }
 
   let currentUserRole = "user";
+  let currentUserData = null;
   let userSnapshotUnsub = null;
   let usersListUnsub = null;
   let historyListUnsub = null;
+  globalUsersList = [];
+  let globalUsersListUnsub = null;
   let currentIp = "Đang lấy...";
   
   // Lấy IP của người dùng
@@ -455,7 +463,13 @@ if (true) {
         let selectHtml = "";
         let actionBtns = "";
         let nameHtml = "";
-        let accountTeamHtml = `<div style="font-size: 0.85em; color: #555;">LS: ${data.luckyShopAccount || '-'}</div><div style="font-size: 0.85em; color: #555;">Team: ${data.luckyShopTeam || '-'}</div>`;
+        const fmtVND = (num) => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
+        let accountTeamHtml = `
+          <div style="font-size: 0.82em; color: #555;">LS: ${data.luckyShopAccount || '-'}</div>
+          <div style="font-size: 0.82em; color: #555;">Team: ${data.luckyShopTeam || '-'}</div>
+          ${(data.currentLuckyBalance !== undefined && data.currentLuckyBalance !== 0) ? `<div style="font-size: 0.81em; color: #16a34a; font-weight: 600; margin-top: 2px;">Dư: ${fmtVND(data.currentLuckyBalance)}</div>` : ''}
+          ${(data.luckyLimit !== undefined && data.luckyLimit !== 0) ? `<div style="font-size: 0.81em; color: #dc2626; font-weight: 600; margin-top: 1px;">Hạn mức: ${fmtVND(data.luckyLimit)}</div>` : ''}
+        `;
         let statusHtml = "";
 
         if (isSuperAdmin) {
@@ -704,9 +718,8 @@ if (true) {
       historyListUnsub();
       historyListUnsub = null;
     }
-
-    if (user) {
-      // Register or update user in Firestore
+     if (user) {
+       // Register or update user in Firestore
       const userRef = doc(db, "users", user.uid);
       getDoc(userRef).then((docSnap) => {
         if (!docSnap.exists()) {
@@ -727,6 +740,23 @@ if (true) {
       userSnapshotUnsub = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          currentUserData = data;
+
+          // Check limits and update warning banner
+          const cLixi = parseFloat(data.currentLuckyBalance) || 0;
+          const lLimit = parseFloat(data.luckyLimit) || 0;
+          const warningBanner = document.getElementById("limit_warning_banner");
+          const warningText = document.getElementById("limit_warning_text");
+          if (warningBanner && warningText) {
+              if (lLimit > 0 && cLixi > lLimit) {
+                  const formatVNDLocal = (num) => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
+                  warningText.innerHTML = `Số dư lì xì hiện tại (<strong>${formatVNDLocal(cLixi)}</strong>) đã vượt quá hạn mức quy định (<strong>${formatVNDLocal(lLimit)}</strong>)!`;
+                  warningBanner.style.display = "block";
+              } else {
+                  warningBanner.style.display = "none";
+              }
+          }
+
           if (data.isBlocked) {
             logAction("Bi khóa tài khoản", {});
             setTimeout(() => signOut(auth), 500);
@@ -792,15 +822,6 @@ if (true) {
         if (btnLogin) btnLogin.style.display = "none";
         if (btnLogout) btnLogout.style.display = "flex";
         
-        const btnOpenTracker = document.getElementById("btn_open_tracker");
-        const btnQuickCreateProfile = document.getElementById("btn_quick_create_profile");
-        const inlineTrackerBanner = document.getElementById("inline_tracker_banner");
-        const mTabTracker = document.getElementById("mtab_tracker");
-        if (btnOpenTracker) btnOpenTracker.style.display = "flex";
-        if (btnQuickCreateProfile) btnQuickCreateProfile.style.display = "flex";
-        if (inlineTrackerBanner) inlineTrackerBanner.style.display = "block";
-        if (mTabTracker) mTabTracker.style.display = "block";
-
         const udrContainer = document.getElementById(
           "user_default_rank_container",
         );
@@ -810,7 +831,6 @@ if (true) {
 
         if (currentUserRole === "admin") {
           if (btnAdminPanel) btnAdminPanel.style.display = isSuperAdmin ? "flex" : "none";
-          if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "flex";
           if (userInfoDisplay) {
             userInfoDisplay.style.display = "block";
             userInfoDisplay.innerText = isSuperAdmin
@@ -823,7 +843,6 @@ if (true) {
           }
         } else {
           if (btnAdminPanel) btnAdminPanel.style.display = "none";
-          if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "none";
           if (userInfoDisplay) {
             userInfoDisplay.style.display = "block";
             userInfoDisplay.innerText = `Xin chào: ${user.displayName || user.email}`;
@@ -844,17 +863,12 @@ if (true) {
       if (btnLogin) btnLogin.style.display = "flex";
       if (btnLogout) btnLogout.style.display = "none";
       
-      const btnOpenTracker = document.getElementById("btn_open_tracker");
-      const btnQuickCreateProfile = document.getElementById("btn_quick_create_profile");
-      const inlineTrackerBanner = document.getElementById("inline_tracker_banner");
-      const mTabTracker = document.getElementById("mtab_tracker");
-      if (btnOpenTracker) btnOpenTracker.style.display = "none";
-      if (btnQuickCreateProfile) btnQuickCreateProfile.style.display = "none";
-      if (inlineTrackerBanner) inlineTrackerBanner.style.display = "none";
-      if (mTabTracker) mTabTracker.style.display = "none";
+
+      const warningBanner = document.getElementById("limit_warning_banner");
+      if (warningBanner) warningBanner.style.display = "none";
 
       if (btnAdminPanel) btnAdminPanel.style.display = "none";
-      if (btnSaveScreenDefaults) btnSaveScreenDefaults.style.display = "none";
+
       if (userInfoDisplay) userInfoDisplay.style.display = "none";
 
       const udrContainer = document.getElementById(
@@ -869,16 +883,138 @@ if (true) {
     }
   });
 
+  let registrationAccounts = [];
+  const renderRegAccountsList = () => {
+    const listEl = document.getElementById("reg_accounts_list");
+    if (!listEl) return;
+    if (registrationAccounts.length === 0) {
+      listEl.innerHTML = `<div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>`;
+      return;
+    }
+    listEl.innerHTML = "";
+    registrationAccounts.forEach((acc, idx) => {
+      const row = document.createElement("div");
+      row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem; font-weight: 500;";
+      row.innerHTML = `
+        <span style="color: #334155; word-break: break-all;">${acc}</span>
+        <button type="button" class="btn-remove-reg-acc" data-index="${idx}" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 2px 6px; line-height: 1;">&times;</button>
+      `;
+      listEl.appendChild(row);
+    });
+
+    listEl.querySelectorAll(".btn-remove-reg-acc").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const idx = parseInt(e.target.getAttribute("data-index"));
+        registrationAccounts.splice(idx, 1);
+        renderRegAccountsList();
+      });
+    });
+  };
+
+  let editProfileAccounts = [];
+  const renderEditAccountsList = () => {
+    const listEl = document.getElementById("edit_reg_accounts_list");
+    if (!listEl) return;
+    if (editProfileAccounts.length === 0) {
+      listEl.innerHTML = `<div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>`;
+      return;
+    }
+    listEl.innerHTML = "";
+    editProfileAccounts.forEach((acc, idx) => {
+      const row = document.createElement("div");
+      row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem; font-weight: 500;";
+      row.innerHTML = `
+        <span style="color: #334155; word-break: break-all;">${acc}</span>
+        <button type="button" class="btn-remove-edit-acc" data-index="${idx}" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 2px 6px; line-height: 1;">&times;</button>
+      `;
+      listEl.appendChild(row);
+    });
+
+    listEl.querySelectorAll(".btn-remove-edit-acc").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const idx = parseInt(e.target.getAttribute("data-index"));
+        editProfileAccounts.splice(idx, 1);
+        renderEditAccountsList();
+      });
+    });
+  };
+
+  const btnAddRegAccount = document.getElementById("btn_add_reg_account");
+  if (btnAddRegAccount) {
+    btnAddRegAccount.addEventListener("click", () => {
+      const inputEl = document.getElementById("profile_lucky_account_input");
+      if (!inputEl) return;
+      const val = inputEl.value.trim();
+      if (!val) {
+        showToast("Vui lòng nhập tên tài khoản", "error");
+        return;
+      }
+      if (registrationAccounts.includes(val)) {
+        showToast("Tài khoản này đã được thêm", "error");
+        return;
+      }
+      registrationAccounts.push(val);
+      inputEl.value = "";
+      renderRegAccountsList();
+    });
+  }
+
+  const btnAddEditAccount = document.getElementById("btn_add_edit_account");
+  if (btnAddEditAccount) {
+    btnAddEditAccount.addEventListener("click", () => {
+      const inputEl = document.getElementById("edit_profile_lucky_account_input");
+      if (!inputEl) return;
+      const val = inputEl.value.trim();
+      if (!val) {
+        showToast("Vui lòng nhập tên tài khoản", "error");
+        return;
+      }
+      if (editProfileAccounts.includes(val)) {
+        showToast("Tài khoản này đã được thêm", "error");
+        return;
+      }
+      editProfileAccounts.push(val);
+      inputEl.value = "";
+      renderEditAccountsList();
+    });
+  }
+
+  const setupEnterToAddAccount = (inputId, btnId) => {
+    const inputEl = document.getElementById(inputId);
+    const btnEl = document.getElementById(btnId);
+    if (inputEl && btnEl) {
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          btnEl.click();
+        }
+      });
+    }
+  };
+
+  setupEnterToAddAccount("profile_lucky_account_input", "btn_add_reg_account");
+  setupEnterToAddAccount("edit_profile_lucky_account_input", "btn_add_edit_account");
+
   const btnSubmitProfile = document.getElementById("btn_submit_profile");
   if (btnSubmitProfile) {
     btnSubmitProfile.addEventListener("click", () => {
       if(!auth.currentUser) return;
-      const account = document.getElementById("profile_lucky_account").value.trim();
       const team = document.getElementById("profile_team").value.trim();
       const errEl = document.getElementById("profile_error");
       
-      if(!account || !team) {
-         errEl.innerText = "Vui lòng nhập đầy đủ thông tin";
+      // Auto-add any current typed input
+      const inputEl = document.getElementById("profile_lucky_account_input");
+      if (inputEl && inputEl.value.trim()) {
+        const val = inputEl.value.trim();
+        if (!registrationAccounts.includes(val)) {
+          registrationAccounts.push(val);
+          inputEl.value = "";
+        }
+      }
+      renderRegAccountsList();
+      
+      if(registrationAccounts.length === 0 || !team) {
+         errEl.innerText = "Vui lòng thêm ít nhất một tài khoản và nhập tên Team.";
          errEl.style.display = "block";
          return;
       }
@@ -886,9 +1022,11 @@ if (true) {
       btnSubmitProfile.innerText = "Đang gửi...";
       btnSubmitProfile.disabled = true;
       
+      const accountStr = registrationAccounts.join(", ");
       const userRef = doc(db, "users", auth.currentUser.uid);
       updateDoc(userRef, {
-         luckyShopAccount: account,
+         luckyShopAccount: accountStr,
+         luckyShopAccounts: registrationAccounts,
          luckyShopTeam: team,
          isProfileComplete: true,
          status: "pending"
@@ -902,13 +1040,13 @@ if (true) {
                       <ul>
                         <li>Email: ${auth.currentUser.email}</li>
                         <li>Tên: ${auth.currentUser.displayName || ''}</li>
-                        <li>Tài khoản Lucky Shop: ${account}</li>
+                        <li>Tài khoản Lucky Shop: ${accountStr}</li>
                         <li>Team: ${team}</li>
                       </ul>
                       <p>Vui lòng đăng nhập hệ thống để phê duyệt cho User này.</p>`
             }
          });
-         logAction("Gửi yêu cầu phê duyệt", { luckyShopAccount: account, luckyShopTeam: team });
+         logAction("Gửi yêu cầu phê duyệt", { luckyShopAccount: accountStr, luckyShopAccounts: registrationAccounts, luckyShopTeam: team });
          btnSubmitProfile.innerText = "Gửi yêu cầu phê duyệt";
          btnSubmitProfile.disabled = false;
          showToast("Đã gửi yêu cầu thành công!", "success");
@@ -928,6 +1066,386 @@ if (true) {
         setTimeout(() => signOut(auth), 500);
     });
   }
+
+
+
+  const btnSaveEditProfile = document.getElementById("btn_save_edit_profile");
+  if (btnSaveEditProfile) {
+    btnSaveEditProfile.addEventListener("click", async () => {
+      const editTeam = document.getElementById("edit_profile_team");
+      const editCurrLixi = document.getElementById("edit_profile_curr_lixi");
+      const editLimit = document.getElementById("edit_profile_lucky_limit");
+      const errDiv = document.getElementById("edit_profile_error");
+      
+      const team = editTeam ? editTeam.value.trim() : "";
+      const currLixi = editCurrLixi ? parseFloat(editCurrLixi.value) : 0;
+      const limit = editLimit ? parseFloat(editLimit.value) : 0;
+      
+      // Auto-add any current typed input
+      const editInputEl = document.getElementById("edit_profile_lucky_account_input");
+      if (editInputEl && editInputEl.value.trim()) {
+        const val = editInputEl.value.trim();
+        if (!editProfileAccounts.includes(val)) {
+          editProfileAccounts.push(val);
+          editInputEl.value = "";
+        }
+      }
+      renderEditAccountsList();
+      
+      if (editProfileAccounts.length === 0) {
+          if (errDiv) {
+              errDiv.innerText = "Vui lòng thêm ít nhất một tài khoản Lucky Shop.";
+              errDiv.style.display = "block";
+          }
+          return;
+      }
+      if (!team) {
+          if (errDiv) {
+              errDiv.innerText = "Vui lòng nhập tên Team.";
+              errDiv.style.display = "block";
+          }
+          return;
+      }
+      
+      try {
+          if (auth.currentUser) {
+              btnSaveEditProfile.disabled = true;
+              btnSaveEditProfile.innerText = "Đang xử lý...";
+              
+              const accountStr = editProfileAccounts.join(", ");
+              await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                  luckyShopAccount: accountStr,
+                  luckyShopAccounts: editProfileAccounts,
+                  luckyShopTeam: team,
+                  currentLuckyBalance: isNaN(currLixi) ? 0 : currLixi,
+                  luckyLimit: isNaN(limit) ? 0 : limit,
+              });
+              
+              logAction("Cập nhật thiết lập tài khoản", { 
+                  luckyShopAccount: accountStr,
+                  luckyShopAccounts: editProfileAccounts, 
+                  luckyShopTeam: team, 
+                  currentLuckyBalance: isNaN(currLixi) ? 0 : currLixi, 
+                  luckyLimit: isNaN(limit) ? 0 : limit 
+              });
+              
+              showToast("Cập nhật tài khoản thành công!", "success");
+              document.getElementById("edit_profile_modal").style.display = "none";
+          }
+      } catch (err) {
+          console.error(err);
+          if (errDiv) {
+              errDiv.innerText = "Lỗi khi lưu dữ liệu: " + err.message;
+              errDiv.style.display = "block";
+          }
+      } finally {
+          if (btnSaveEditProfile) {
+              btnSaveEditProfile.disabled = false;
+              btnSaveEditProfile.innerText = "Áp dụng";
+          }
+      }
+    });
+  }
+
+  // --- PRODUCT MANAGEMENT FEATURE ---
+  let productsListUnsub = null;
+  let globalProductsList = [];
+
+  const updateProductsUI = () => {
+    const productSelect = document.getElementById("p_product_select");
+    if (!productSelect) return;
+
+    const currentValue = productSelect.value;
+    
+    // Clear options but preserve manual and create new options
+    productSelect.innerHTML = "";
+    
+    const manualOpt = document.createElement("option");
+    manualOpt.value = "";
+    manualOpt.textContent = "-- Nhập thủ công --";
+    productSelect.appendChild(manualOpt);
+    
+    globalProductsList.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      const formattedPrice = new Intl.NumberFormat("vi-VN").format(p.price);
+      opt.textContent = `${p.name} (${formattedPrice} đ)`;
+      productSelect.appendChild(opt);
+    });
+    
+    const createNewOpt = document.createElement("option");
+    createNewOpt.value = "create_new";
+    createNewOpt.textContent = "➕ Tạo sản phẩm mới...";
+    productSelect.appendChild(createNewOpt);
+    
+    if (window.pendingSelectProductId && globalProductsList.some(p => p.id === window.pendingSelectProductId)) {
+      productSelect.value = window.pendingSelectProductId;
+      window.pendingSelectProductId = null;
+      const prod = globalProductsList.find(p => p.id === productSelect.value);
+      if (prod) {
+        inputs.p_price.value = new Intl.NumberFormat("vi-VN").format(prod.price);
+        calculate();
+      }
+    } else if (currentValue && [...productSelect.options].some(opt => opt.value === currentValue)) {
+      productSelect.value = currentValue;
+    } else {
+      productSelect.value = "";
+    }
+
+    updateProductManagerList();
+  };
+
+  const updateProductManagerList = () => {
+    const listEl = document.getElementById("pm_products_list");
+    if (!listEl) return;
+    
+    if (globalProductsList.length === 0) {
+      listEl.innerHTML = `<div style="font-style: italic; color: #94a3b8; text-align: center; padding: 15px 0;">Chưa có sản phẩm nào. Hãy thêm ở trên!</div>`;
+      return;
+    }
+    
+    listEl.innerHTML = "";
+    globalProductsList.forEach(p => {
+      const item = document.createElement("div");
+      item.style.display = "flex";
+      item.style.justifyContent = "space-between";
+      item.style.alignItems = "center";
+      item.style.padding = "8px 12px";
+      item.style.background = "white";
+      item.style.border = "1px solid #e2e8f0";
+      item.style.borderRadius = "6px";
+      item.style.boxShadow = "0 1px 2px rgba(0,0,0,0.02)";
+      item.style.marginBottom = "6px";
+      
+      const formattedPrice = new Intl.NumberFormat("vi-VN").format(p.price);
+      
+      item.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">${p.name}</span>
+          <span style="font-weight: 500; color: #2563eb; font-size: 0.85rem;">${formattedPrice} VNĐ</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" class="btn-edit-prod" data-id="${p.id}" style="padding: 4px 8px; background: #eff6ff; color: #2563eb; border: none; border-radius: 4px; font-size: 0.78rem; cursor: pointer; font-weight: 600; transition: all 0.2s;">Sửa</button>
+          <button type="button" class="btn-delete-prod" data-id="${p.id}" style="padding: 4px 8px; background: #fef2f2; color: #ef4444; border: none; border-radius: 4px; font-size: 0.78rem; cursor: pointer; font-weight: 600; transition: all 0.2s;">Xóa</button>
+        </div>
+      `;
+      listEl.appendChild(item);
+    });
+    
+    listEl.querySelectorAll(".btn-edit-prod").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.target.getAttribute("data-id");
+        const prod = globalProductsList.find(p => p.id === id);
+        if (prod) {
+          document.getElementById("pm_product_id").value = prod.id;
+          document.getElementById("pm_p_name").value = prod.name;
+          document.getElementById("pm_p_price").value = new Intl.NumberFormat("vi-VN").format(prod.price);
+          document.getElementById("pm_form_title").textContent = "✏️ Sửa sản phẩm";
+          document.getElementById("btn_pm_cancel").style.display = "inline-block";
+          document.getElementById("pm_p_name").focus();
+        }
+      });
+    });
+    
+    listEl.querySelectorAll(".btn-delete-prod").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.target.getAttribute("data-id");
+        const prod = globalProductsList.find(p => p.id === id);
+        if (prod && confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${prod.name}" không?`)) {
+          try {
+            await deleteDoc(doc(db, "products", id));
+            showToast("Đã xóa sản phẩm thành công", "success");
+            logAction("Xóa sản phẩm", { productId: id, name: prod.name });
+            const productSelect = document.getElementById("p_product_select");
+            if (productSelect && productSelect.value === id) {
+              productSelect.value = "";
+              calculate();
+            }
+          } catch (err) {
+            showToast("Lỗi khi xóa sản phẩm: " + err.message, "error");
+          }
+        }
+      });
+    });
+  };
+
+  const productSelect = document.getElementById("p_product_select");
+  const quickProductContainer = document.getElementById("quick_product_container");
+  const quickPName = document.getElementById("quick_p_name");
+  const quickPPrice = document.getElementById("quick_p_price");
+  const btnQuickCancelProduct = document.getElementById("btn_quick_cancel_product");
+  const btnQuickSaveProduct = document.getElementById("btn_quick_save_product");
+  const btnManageProducts = document.getElementById("btn_manage_products");
+  
+  const pmProductId = document.getElementById("pm_product_id");
+  const pmPName = document.getElementById("pm_p_name");
+  const pmPPrice = document.getElementById("pm_p_price");
+  const btnPmCancel = document.getElementById("btn_pm_cancel");
+  const btnPmSave = document.getElementById("btn_pm_save");
+
+  if (productSelect) {
+    productSelect.addEventListener("change", () => {
+      const val = productSelect.value;
+      if (val === "create_new") {
+        if (quickProductContainer) quickProductContainer.style.display = "block";
+        if (quickPName) {
+          quickPName.value = "";
+          quickPName.focus();
+        }
+        if (quickPPrice) quickPPrice.value = "";
+      } else if (val !== "") {
+        if (quickProductContainer) quickProductContainer.style.display = "none";
+        const prod = globalProductsList.find(p => p.id === val);
+        if (prod && inputs.p_price) {
+          inputs.p_price.value = new Intl.NumberFormat("vi-VN").format(prod.price);
+          calculate();
+        }
+      } else {
+        if (quickProductContainer) quickProductContainer.style.display = "none";
+      }
+    });
+  }
+
+  if (btnQuickCancelProduct) {
+    btnQuickCancelProduct.addEventListener("click", () => {
+      if (productSelect) productSelect.value = "";
+      if (quickProductContainer) quickProductContainer.style.display = "none";
+    });
+  }
+
+  if (btnQuickSaveProduct) {
+    btnQuickSaveProduct.addEventListener("click", async () => {
+      const name = quickPName ? quickPName.value.trim() : "";
+      const priceStr = quickPPrice ? quickPPrice.value.replace(/\D/g, "") : "";
+      const price = parseFloat(priceStr) || 0;
+      
+      if (!name) {
+        showToast("Vui lòng nhập tên sản phẩm", "error");
+        return;
+      }
+      if (price <= 0) {
+        showToast("Giá sản phẩm phải lớn hơn 0 VNĐ", "error");
+        return;
+      }
+      
+      try {
+        btnQuickSaveProduct.disabled = true;
+        const docRef = await addDoc(collection(db, "products"), {
+          name,
+          price,
+          createdBy: auth.currentUser ? auth.currentUser.email : "guest",
+          createdAt: new Date().toISOString()
+        });
+        
+        window.pendingSelectProductId = docRef.id;
+        showToast("Thêm sản phẩm thành công!", "success");
+        logAction("Tạo sản phẩm nhanh", { name, price });
+        
+        if (quickPName) quickPName.value = "";
+        if (quickPPrice) quickPPrice.value = "";
+        if (quickProductContainer) quickProductContainer.style.display = "none";
+      } catch (err) {
+        showToast("Lỗi khi tạo sản phẩm: " + err.message, "error");
+      } finally {
+        btnQuickSaveProduct.disabled = false;
+      }
+    });
+  }
+
+
+
+  if (btnPmCancel) {
+    btnPmCancel.addEventListener("click", () => {
+      if (pmProductId) pmProductId.value = "";
+      if (pmPName) pmPName.value = "";
+      if (pmPPrice) pmPPrice.value = "";
+      btnPmCancel.style.display = "none";
+      const title = document.getElementById("pm_form_title");
+      if (title) title.textContent = "➕ Thêm sản phẩm mới";
+    });
+  }
+
+  if (btnPmSave) {
+    btnPmSave.addEventListener("click", async () => {
+      const id = pmProductId ? pmProductId.value : "";
+      const name = pmPName ? pmPName.value.trim() : "";
+      const priceStr = pmPPrice ? pmPPrice.value.replace(/\D/g, "") : "";
+      const price = parseFloat(priceStr) || 0;
+      
+      if (!name) {
+        showToast("Vui lòng nhập tên sản phẩm", "error");
+        return;
+      }
+      if (price <= 0) {
+        showToast("Giá sản phẩm phải lớn hơn 0 VNĐ", "error");
+        return;
+      }
+      
+      try {
+        btnPmSave.disabled = true;
+        if (id) {
+          await updateDoc(doc(db, "products", id), {
+            name,
+            price
+          });
+          showToast("Cập nhật sản phẩm thành công", "success");
+          logAction("Sửa sản phẩm", { productId: id, name, price });
+          if (productSelect && productSelect.value === id && inputs.p_price) {
+            inputs.p_price.value = new Intl.NumberFormat("vi-VN").format(price);
+            calculate();
+          }
+        } else {
+          await addDoc(collection(db, "products"), {
+            name,
+            price,
+            createdBy: auth.currentUser ? auth.currentUser.email : "guest",
+            createdAt: new Date().toISOString()
+          });
+          showToast("Thêm sản phẩm thành công", "success");
+          logAction("Tạo sản phẩm", { name, price });
+        }
+        
+        if (pmProductId) pmProductId.value = "";
+        if (pmPName) pmPName.value = "";
+        if (pmPPrice) pmPPrice.value = "";
+        if (btnPmCancel) btnPmCancel.style.display = "none";
+        const title = document.getElementById("pm_form_title");
+        if (title) title.textContent = "➕ Thêm sản phẩm mới";
+      } catch (err) {
+        showToast("Lỗi khi lưu sản phẩm: " + err.message, "error");
+      } finally {
+        btnPmSave.disabled = false;
+      }
+    });
+  }
+
+  const formatAsCurrencyInput = (e) => {
+    let val = e.target.value.replace(/\D/g, "");
+    if (val !== "") {
+      e.target.value = new Intl.NumberFormat("vi-VN").format(parseInt(val, 10));
+    } else {
+      e.target.value = "";
+    }
+  };
+
+  if (quickPPrice) {
+    quickPPrice.addEventListener("input", formatAsCurrencyInput);
+  }
+  if (pmPPrice) {
+    pmPPrice.addEventListener("input", formatAsCurrencyInput);
+  }
+
+  // Connect real-time stream for products (accessible to guests and logged-in users)
+  onSnapshot(query(collection(db, "products"), orderBy("createdAt", "desc")), (snapshot) => {
+    const list = [];
+    snapshot.forEach((docSnap) => {
+      list.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    globalProductsList = list;
+    updateProductsUI();
+  }, (error) => {
+    console.error("Lỗi lấy danh sách sản phẩm:", error);
+  });
 
   onSnapshot(doc(db, "configs", "main"), (docSnap) => {
     if (docSnap.exists()) {
@@ -992,31 +1510,7 @@ if (true) {
       });
   }
 
-  if (btnSaveScreenDefaults) {
-    btnSaveScreenDefaults.addEventListener("click", () => {
-      if (!auth.currentUser || currentUserRole !== "admin") return;
-      
-      let pChoice = "take";
-      if (document.getElementById("p_choice_resell_platform") && document.getElementById("p_choice_resell_platform").checked) pChoice = "resell_platform";
-      if (document.getElementById("p_choice_resell_self") && document.getElementById("p_choice_resell_self").checked) pChoice = "resell_self";
-      
-      const newConfig = {
-        ui_p_price: document.getElementById("p_price") ? document.getElementById("p_price").value : "",
-        ui_p_turns: document.getElementById("p_turns") ? (document.getElementById("p_turns").value || document.getElementById("p_turns").innerText) : "",
-        ui_p_calcMonths: document.getElementById("p_calcMonths") ? document.getElementById("p_calcMonths").value : "",
-        ui_p_calcDays: document.getElementById("p_calcDays") ? document.getElementById("p_calcDays").value : "",
-        ui_p_choice: pChoice,
-        ui_p_self_resell_amount: document.getElementById("p_self_resell_amount") ? document.getElementById("p_self_resell_amount").value : ""
-      };
 
-      setDoc(doc(db, "configs", "main"), newConfig, { merge: true })
-        .then(() => {
-          showToast("Đã lưu các số liệu trên màn hình thành mặc định hệ thống thành công!", "success");
-          logAction("Lưu màn hình mặc định", newConfig);
-        })
-        .catch((err) => showToast("Lỗi khi lưu: " + err.message, "error"));
-    });
-  }
 
   if (btnSaveConfig) {
     btnSaveConfig.addEventListener("click", () => {
@@ -1773,6 +2267,8 @@ const calculate = () => {
   } else {
     calc.s_roi.className = "val text-danger";
   }
+
+  runUcheckCalculations(a2, a3, a4, a5, a6, a7);
 };
 
 // UI Logic for User Mode
@@ -1841,6 +2337,16 @@ if (inputs.admin_mode_toggle)
   inputs.admin_mode_toggle.addEventListener("change", toggleAdminMode);
 if (inputs.u_rank)
   inputs.u_rank.addEventListener("change", updateSubordinateVisibility);
+
+const ucheckKeys = ["tgd", "gd", "ql", "nv", "direct", "indirect"];
+ucheckKeys.forEach(key => {
+  const selectEl = document.getElementById(`ucheck_select_${key}`);
+  if (selectEl) {
+    selectEl.addEventListener("change", () => {
+      calculate();
+    });
+  }
+});
 
 if (inputs.p_price) {
   inputs.p_price.addEventListener("input", function (e) {
@@ -1994,810 +2500,8 @@ if (btnExportCsv) {
   });
 }
 
-const btnRefreshData = document.getElementById("btn_refresh_data");
-if (btnRefreshData) {
-  btnRefreshData.addEventListener("click", async () => {
-    const refreshIcon = document.getElementById("refresh_icon");
-    // Start animation
-    if (refreshIcon) {
-      refreshIcon.style.display = "inline-block";
-      refreshIcon.style.animation = "spin 1s linear infinite";
-    }
 
-    try {
-      // Re-fetch configs
-      const rolesSnap = await getDoc(doc(db, "configs", "roles"));
-      if (rolesSnap.exists()) {
-        const data = rolesSnap.data();
-        const setRoleName = (idUi, idLbl, idOpt, lblComm, idUdrOpt, val) => {
-          if (!val) return;
-          const ui = document.getElementById(idUi);
-          if (ui) ui.value = val;
-          const lbl = document.getElementById(idLbl);
-          if (lbl) lbl.innerText = val;
-          const opt = document.getElementById(idOpt);
-          if (opt) opt.innerText = val;
-          const comm = document.getElementById(lblComm);
-          if (comm) comm.innerText = "HH " + val.toLowerCase();
-          const optUdr = document.getElementById(idUdrOpt);
-          if (optUdr) optUdr.innerText = val;
-        };
-        setRoleName(
-          "role_name_tgd",
-          null,
-          "opt_tgd",
-          "lbl_hh_tgd",
-          "udr_opt_tgd",
-          data.tgd,
-        );
-        setRoleName(
-          "role_name_gd",
-          "chk_lbl_gd",
-          "opt_gd",
-          "lbl_hh_gd",
-          "udr_opt_gd",
-          data.gd,
-        );
-        setRoleName(
-          "role_name_ql",
-          "chk_lbl_ql",
-          "opt_ql",
-          "lbl_hh_ql",
-          "udr_opt_ql",
-          data.ql,
-        );
-        setRoleName(
-          "role_name_nv",
-          "chk_lbl_nv",
-          "opt_nv",
-          "lbl_hh_nv",
-          "udr_opt_nv",
-          data.nv,
-        );
-      }
 
-      const mainSnap = await getDoc(doc(db, "configs", "main"));
-      if (mainSnap.exists()) {
-        const data = mainSnap.data();
-        const setVal = (id, val) => {
-          if (val !== undefined && document.getElementById(id))
-            document.getElementById(id).value = val;
-        };
-        setVal("a_max_tgd", data.a_max_tgd);
-        setVal("a_max_gd", data.a_max_gd);
-        setVal("a_max_ql", data.a_max_ql);
-        setVal("a_max_nv", data.a_max_nv);
-        setVal("a_max_direct", data.a_max_direct);
-      }
-
-      // Trigger calculate
-      calculate();
-      showToast("Đã làm mới dữ liệu từ máy chủ", "success");
-    } catch (error) {
-      console.error(error);
-      showToast("Lỗi làm mới dữ liệu", "error");
-    } finally {
-      // Stop animation
-      if (refreshIcon) {
-        refreshIcon.style.animation = "none";
-      }
-    }
-  });
-}
-
-const showPrompt = (message, defaultValue = "") => {
-    return new Promise((resolve) => {
-        const overlay = document.createElement("div");
-        Object.assign(overlay.style, {
-            position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
-            background: "rgba(0,0,0,0.5)", zIndex: "9999", display: "flex", 
-            alignItems: "center", justifyContent: "center"
-        });
-        const box = document.createElement("div");
-        Object.assign(box.style, {
-            background: "white", padding: "20px", borderRadius: "8px", 
-            width: "300px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-        });
-        const title = document.createElement("div");
-        title.innerText = message;
-        title.style.marginBottom = "10px";
-        title.style.fontWeight = "bold";
-        const input = document.createElement("input");
-        input.type = "text";
-        input.value = defaultValue;
-        Object.assign(input.style, {
-            width: "100%", padding: "8px", border: "1px solid #ccc", 
-            borderRadius: "4px", marginBottom: "15px"
-        });
-        const btnGroup = document.createElement("div");
-        btnGroup.style.display = "flex";
-        btnGroup.style.justifyContent = "flex-end";
-        btnGroup.style.gap = "10px";
-        const btnOk = document.createElement("button");
-        btnOk.innerText = "OK";
-        Object.assign(btnOk.style, {
-            background: "#3b82f6", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer"
-        });
-        const btnCancel = document.createElement("button");
-        btnCancel.innerText = "Hủy";
-        Object.assign(btnCancel.style, {
-            background: "#e2e8f0", color: "#333", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer"
-        });
-        
-        const close = (val) => { document.body.removeChild(overlay); resolve(val); };
-        btnOk.onclick = () => close(input.value);
-        btnCancel.onclick = () => close(null);
-        
-        btnGroup.appendChild(btnCancel);
-        btnGroup.appendChild(btnOk);
-        box.appendChild(title);
-        box.appendChild(input);
-        box.appendChild(btnGroup);
-        overlay.appendChild(box);
-        document.body.appendChild(overlay);
-        input.focus();
-    });
-};
-
-const showConfirm = (message) => {
-    return new Promise((resolve) => {
-        const overlay = document.createElement("div");
-        Object.assign(overlay.style, {
-            position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
-            background: "rgba(0,0,0,0.5)", zIndex: "9999", display: "flex", 
-            alignItems: "center", justifyContent: "center"
-        });
-        const box = document.createElement("div");
-        Object.assign(box.style, {
-            background: "white", padding: "20px", borderRadius: "8px", 
-            width: "300px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)", textAlign: "center"
-        });
-        const title = document.createElement("div");
-        title.innerText = message;
-        title.style.marginBottom = "15px";
-        const btnGroup = document.createElement("div");
-        btnGroup.style.display = "flex";
-        btnGroup.style.justifyContent = "center";
-        btnGroup.style.gap = "10px";
-        const btnOk = document.createElement("button");
-        btnOk.innerText = "Đồng ý";
-        Object.assign(btnOk.style, {
-            background: "#ef4444", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer"
-        });
-        const btnCancel = document.createElement("button");
-        btnCancel.innerText = "Hủy";
-        Object.assign(btnCancel.style, {
-            background: "#e2e8f0", color: "#333", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer"
-        });
-        
-        const close = (val) => { document.body.removeChild(overlay); resolve(val); };
-        btnOk.onclick = () => close(true);
-        btnCancel.onclick = () => close(false);
-        
-        btnGroup.appendChild(btnCancel);
-        btnGroup.appendChild(btnOk);
-        box.appendChild(title);
-        box.appendChild(btnGroup);
-        overlay.appendChild(box);
-        document.body.appendChild(overlay);
-    });
-};
-
-// --- TRACKER LOGIC ---
-const t_formatVND = (num) => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
-const t_formatNumber = (num) => new Intl.NumberFormat("vi-VN").format(Math.round(num));
-
-const loadTrackerData = () => {
-  let profiles = JSON.parse(localStorage.getItem("lucky_tracker_profiles") || "{}");
-  let activeId = localStorage.getItem("lucky_tracker_active_id");
-  
-  // Migration from old single profile
-  const oldProfile = JSON.parse(localStorage.getItem("lucky_tracker") || "null");
-  if (oldProfile && Object.keys(profiles).length === 0) {
-    const newId = 'profile_' + Date.now();
-    oldProfile.name = 'Hồ sơ 1';
-    profiles[newId] = oldProfile;
-    activeId = newId;
-    localStorage.removeItem("lucky_tracker");
-    // We defer the save to the caller or do it safely
-    try {
-        const safeOld = {
-           name: String(oldProfile.name || ""),
-           startDate: String(oldProfile.startDate || ""),
-           luckyBalance: Number(oldProfile.luckyBalance) || 0,
-           turns: Number(oldProfile.turns) || 0,
-           luckyMul: Number(oldProfile.luckyMul) || 0,
-           dailyLuckyRate: Number(oldProfile.dailyLuckyRate) || 0,
-           needToCover: Number(oldProfile.needToCover) || 0,
-           actualLixi: oldProfile.actualLixi || {}
-        };
-        profiles[newId] = safeOld;
-        localStorage.setItem("lucky_tracker_profiles", JSON.stringify(profiles));
-    } catch(e) {}
-    localStorage.setItem("lucky_tracker_active_id", activeId);
-  }
-
-  if (!activeId && Object.keys(profiles).length > 0) {
-    activeId = Object.keys(profiles)[0];
-    localStorage.setItem("lucky_tracker_active_id", activeId);
-  }
-  
-  return { profiles, activeId };
-};
-
-const saveTrackerData = (profiles, activeId) => {
-  // Completely strip out any non-primitive data to ensure no DOM elements 
-  // or circular references ever make it into localStorage.
-  const safeProfiles = {};
-  for (const id in profiles) {
-    const p = profiles[id];
-    if (!p) continue;
-
-    const safeActual = {};
-    if (p.actualLixi) {
-        for (const key in p.actualLixi) { 
-            safeActual[key] = Number(p.actualLixi[key]) || 0; 
-        }
-    }
-    
-    // Explicitly rebuild the object with primitives only
-    safeProfiles[id] = {
-       name: String(p.name || ""),
-       startDate: String(p.startDate || ""),
-       luckyBalance: Number(p.luckyBalance) || 0,
-       turns: Number(p.turns) || 0,
-       luckyMul: Number(p.luckyMul) || 0,
-       dailyLuckyRate: Number(p.dailyLuckyRate) || 0,
-       needToCover: Number(p.needToCover) || 0,
-       actualLixi: safeActual
-    };
-  }
-
-  try {
-    localStorage.setItem("lucky_tracker_profiles", JSON.stringify(safeProfiles));
-  } catch (e) {
-    console.error(e);
-  }
-
-  if (activeId) {
-    localStorage.setItem("lucky_tracker_active_id", activeId);
-  } else {
-    localStorage.removeItem("lucky_tracker_active_id");
-  }
-};
-
-const renderTracker = (defaultDate = "") => {
-  const trackerContent = document.getElementById("tracker_content");
-  if (!trackerContent) return;
-
-  const { profiles, activeId } = loadTrackerData();
-  const hasProfiles = Object.keys(profiles).length > 0;
-  
-  // Profile Management Header
-  let profileHtml = `
-    <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 400px;">
-          <label style="font-weight: 600; color: #475569;">Hồ sơ:</label>
-          <select id="tracker_profile_select" style="flex: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none;">
-            <option value="">-- Chọn hồ sơ --</option>
-            ${Object.entries(profiles).map(([id, p]) => `<option value="${id}" ${id === activeId ? 'selected' : ''}>${p.name}</option>`).join('')}
-          </select>
-        </div>
-        <div style="display: flex; gap: 10px;">
-          <button id="btn_new_profile" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">+ Tạo mới</button>
-          ${hasProfiles ? `
-            <button id="btn_rename_profile" style="background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Đổi tên</button>
-            <button id="btn_delete_profile" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Xóa</button>
-            <button id="btn_export_profile" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">Xuất CSV</button>
-          ` : ''}
-        </div>
-      </div>
-    </div>
-  `;
-
-  if (!hasProfiles || !activeId || !profiles[activeId]) {
-    trackerContent.innerHTML = profileHtml + `
-      <div style="text-align: center; padding: 40px 20px;">
-        <h3 style="margin-bottom: 10px; color: #374151;">Chưa có hồ sơ nào được chọn</h3>
-        <p style="color: #6b7280; margin-bottom: 20px; line-height: 1.5;">Vui lòng tạo hồ sơ mới dựa trên các thông số cấu hình đang tính toán ở bên ngoài.</p>
-      </div>
-    `;
-    setupProfileListeners();
-    return;
-  }
-
-  const trackerProfile = profiles[activeId];
-
-  let html = profileHtml + `
-        <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 6px; border: 1px dashed #cbd5e1;">
-            <div>
-                <strong>Ngày bắt đầu:</strong> ${(() => {
-                    const d = new Date(trackerProfile.startDate);
-                    return d.getDate().toString().padStart(2, '0') + '/' + 
-                           (d.getMonth() + 1).toString().padStart(2, '0') + '/' + 
-                           d.getFullYear();
-                })()}
-            </div>
-            <div>
-                <strong>Mục tiêu bù:</strong> <span style="color:#ef4444; font-weight:bold; font-size: 1.1rem;">${t_formatVND(trackerProfile.needToCover)}</span>
-            </div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
-            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
-                <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">Thực Nhận (Cộng dồn)</div>
-                <div id="tk_summary_actual" style="font-size: 1.2rem; font-weight: bold; color: #10b981;">0 đ</div>
-            </div>
-            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
-                <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">Còn Phải Bù</div>
-                <div id="tk_summary_remain" style="font-size: 1.2rem; font-weight: bold; color: #ef4444;">0 đ</div>
-            </div>
-            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
-                <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">Tiến Độ Hòa Vốn</div>
-                <div id="tk_summary_progress" style="font-size: 1.2rem; font-weight: bold; color: #3b82f6;">0%</div>
-            </div>
-        </div>
-        
-        <div class="chart-container" style="margin-bottom: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; position: relative; width: 100%;">
-            <canvas id="trackerChartCanvas" style="width: 100%; min-height: 200px;"></canvas>
-        </div>
-        
-        <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <label style="font-weight: bold; color: #334155;">📅 Chọn ngày:</label>
-                <select id="tk_day_select" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; font-weight: bold; color: #2563eb; font-size: 1rem;"></select>
-            </div>
-            <button id="btn_open_day_input" style="background: #8b5cf6; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.4);">📝 Nhập liệu / Cập nhật</button>
-        </div>
-    `;
-
-  trackerContent.innerHTML = html;
-  
-  setupProfileListeners();
-
-  const daySelect = document.getElementById("tk_day_select");
-
-  let currBalance = trackerProfile.luckyBalance;
-  let totalCash = 0;
-
-  let maxDay = 365;
-  const existingDays = Object.keys(trackerProfile.actualLixi).map(Number);
-  const maxInputDay = existingDays.length > 0 ? Math.max(...existingDays) : 0;
-  if (existingDays.length > 0) {
-    maxDay = Math.max(maxDay, maxInputDay + 10);
-  }
-
-  const startObj = new Date(trackerProfile.startDate);
-
-  let gridHtml = "";
-  
-  // For Chart
-  let tkLabels = [];
-  let tkActualData = [];
-  let tkExpectedData = [];
-  let tkExpectedCash = 0;
-  let tempExpectedBalance = trackerProfile.luckyBalance;
-
-  // We will store day data to display in the modal
-  window.trackerDayDetails = {};
-  
-  let selectHtml = "";
-  let lastDayFound = 1;
-
-  for (let day = 1; day <= maxDay; day++) {
-    const currentDate = new Date(startObj);
-    currentDate.setDate(startObj.getDate() + day); // Day 1 = startDate + 1 (tomorrow)
-    const dStr = currentDate.getDate().toString().padStart(2, '0');
-    const mStr = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-    const yStr = currentDate.getFullYear();
-    const dateStr = `${dStr}/${mStr}/${yStr}`;
-
-    // Input logic
-    const expectedLixi = currBalance * trackerProfile.dailyLuckyRate;
-    const actualInput = trackerProfile.actualLixi[day];
-    const isInputted = actualInput !== undefined && actualInput !== null;
-    let genLixi = isInputted ? parseFloat(actualInput) : 0;
-
-    if (isInputted) lastDayFound = day;
-
-    totalCash += genLixi;
-    let endBalance = currBalance - genLixi;
-    
-    // Accumulate Expected
-    let thisExpectedLixi = tempExpectedBalance * trackerProfile.dailyLuckyRate;
-    tkExpectedCash += thisExpectedLixi;
-    tempExpectedBalance -= thisExpectedLixi;
-    
-    // Chart Data (Stop Actual line at maxInputDay + 1)
-    tkLabels.push(`Ngày ${day}`);
-    tkExpectedData.push(tkExpectedCash);
-    if (day <= Math.max(1, maxInputDay)) { // Show actual up to the max input day
-        tkActualData.push(totalCash);
-    } else {
-        tkActualData.push(null);
-    }
-
-    let statusHtml = "";
-
-    if (totalCash >= trackerProfile.needToCover) {
-      const profit = totalCash - trackerProfile.needToCover;
-      statusHtml = `<span style="color:#10b981; font-weight: bold;">✅ Lãi: ${t_formatNumber(profit)}</span>`;
-    } else {
-      statusHtml = `<span style="color:#ef4444; font-weight: 500;">⏳ Cần bù: ${t_formatNumber(trackerProfile.needToCover - totalCash)}</span>`;
-    }
-
-    window.trackerDayDetails[day] = {
-        title: `Ngày ${day} (${dateStr})`,
-        startBal: t_formatNumber(currBalance),
-        expected: t_formatNumber(expectedLixi),
-        actual: isInputted ? t_formatNumber(genLixi) : '-',
-        rawActual: isInputted ? genLixi : '',
-        accumulated: t_formatNumber(totalCash),
-        endBal: t_formatNumber(endBalance),
-        status: statusHtml
-    };
-    
-    selectHtml += `<option value="${day}">Ngày ${day} - ${dateStr} ${isInputted ? '✅' : ''}</option>`;
-
-    currBalance = endBalance;
-  }
-
-  if (daySelect) {
-      daySelect.innerHTML = selectHtml;
-      daySelect.value = Math.min(lastDayFound + (lastDayFound < maxDay && maxInputDay >=1 ? 1 : 0), maxDay);
-  }
-  
-  const btnOpenDayInput = document.getElementById("btn_open_day_input");
-  if (btnOpenDayInput) {
-      // Recreate to avoid multiple bindings
-      const newBtn = btnOpenDayInput.cloneNode(true);
-      btnOpenDayInput.parentNode.replaceChild(newBtn, btnOpenDayInput);
-      newBtn.addEventListener("click", () => {
-          const day = daySelect.value;
-          const details = window.trackerDayDetails[day];
-          if (details) {
-              document.getElementById('di_title').innerText = details.title;
-              document.getElementById('di_start_bal').innerText = details.startBal + ' VNĐ';
-              document.getElementById('di_expected').innerText = details.expected + ' VNĐ';
-              
-              const inputEl = document.getElementById('di_actual_input');
-              inputEl.value = details.rawActual;
-              inputEl.dataset.day = day;
-              
-              document.getElementById('di_accumulated').innerText = details.accumulated + ' VNĐ';
-              document.getElementById('di_end_bal').innerText = details.endBal + ' VNĐ';
-              document.getElementById('di_status').innerHTML = details.status;
-              
-              document.getElementById('day_input_modal').style.display = 'flex';
-          }
-      });
-  }
-  
-  // Update Summary Cards
-  const eSummaryActual = document.getElementById("tk_summary_actual");
-  const eSummaryRemain = document.getElementById("tk_summary_remain");
-  const eSummaryProgress = document.getElementById("tk_summary_progress");
-  if (eSummaryActual) {
-      eSummaryActual.innerText = t_formatVND(totalCash);
-      let remain = trackerProfile.needToCover - totalCash;
-      if (remain < 0) remain = 0;
-      eSummaryRemain.innerText = t_formatVND(remain);
-      
-      let progress = trackerProfile.needToCover > 0 ? (totalCash / trackerProfile.needToCover) * 100 : 100;
-      eSummaryProgress.innerText = progress.toFixed(1) + "%";
-  }
-  
-  // Render Chart
-  setTimeout(() => {
-      const ctxTk = document.getElementById("trackerChartCanvas");
-      if (ctxTk) {
-          if (window.trackerChartInstance) {
-              window.trackerChartInstance.destroy();
-          }
-          window.trackerChartInstance = new Chart(ctxTk, {
-            type: "line",
-            data: {
-              labels: tkLabels,
-              datasets: [
-                {
-                  label: "Thực nhận (Lũy kế)",
-                  data: tkActualData,
-                  borderColor: "#10b981",
-                  backgroundColor: "rgba(16, 185, 129, 0.2)",
-                  pointRadius: 2,
-                  fill: true,
-                  tension: 0.2,
-                  spanGaps: true
-                },
-                {
-                  label: "Dự kiến (Lũy kế)",
-                  data: tkExpectedData,
-                  borderColor: "#d1d5db",
-                  backgroundColor: "transparent",
-                  borderDash: [5, 5],
-                  pointRadius: 0,
-                  fill: false,
-                  tension: 0.2
-                },
-                {
-                  label: "Mục tiêu hòa vốn",
-                  data: Array(tkLabels.length).fill(trackerProfile.needToCover),
-                  borderColor: "#ef4444",
-                  borderWidth: 1,
-                  pointRadius: 0,
-                  fill: false,
-                  borderDash: [2, 2]
-                }
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              interaction: { mode: "index", intersect: false },
-              plugins: { tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ": " + t_formatVND(ctx.raw) } } },
-              scales: { y: { suggestedMin: 0, ticks: { callback: (val) => t_formatNumber(val) } } }
-            }
-          });
-      }
-  }, 50);
-};
-
-const setupProfileListeners = () => {
-    const sel = document.getElementById("tracker_profile_select");
-    const btnNew = document.getElementById("btn_new_profile");
-    const btnRename = document.getElementById("btn_rename_profile");
-    const btnDelete = document.getElementById("btn_delete_profile");
-
-    if (sel) {
-        sel.addEventListener("change", (e) => {
-            const val = e.target.value;
-            if (val) {
-                const { profiles } = loadTrackerData();
-                saveTrackerData(profiles, val);
-                renderTracker();
-            } else {
-                const { profiles } = loadTrackerData();
-                saveTrackerData(profiles, null);
-                renderTracker();
-            }
-        });
-    }
-
-    if (btnNew) {
-        btnNew.addEventListener("click", async () => {
-            try {
-                const name = await showPrompt("Nhập tên hồ sơ mới:", "Hồ sơ " + (Object.keys(loadTrackerData().profiles).length + 1));
-                if (!name) return;
-
-                let inputDateStr = await showPrompt("Ngày mua (DD/MM/YYYY):", (() => {
-                    const d = new Date();
-                    return d.getDate().toString().padStart(2, '0') + '/' + 
-                           (d.getMonth() + 1).toString().padStart(2, '0') + '/' + 
-                           d.getFullYear();
-                })());
-                if (!inputDateStr) return;
-
-                let startDate = inputDateStr;
-                const dParts = inputDateStr.split("/");
-                if (dParts.length === 3) {
-                   startDate = `${dParts[2]}-${dParts[1]}-${dParts[0]}`;
-                }
-
-                // Read directly from DOM to match UI
-                const eSInitialBal = document.getElementById("s_initialBal");
-                const luckyBalanceStr = eSInitialBal ? eSInitialBal.innerText.replace(/[^\d]/g, "") : "0";
-                const luckyBalance = parseFloat(luckyBalanceStr) || 0;
-                
-                const eBNeedToCover = document.getElementById("b_needToCover");
-                const needToCoverStr = eBNeedToCover ? eBNeedToCover.innerText.replace(/[^\d]/g, "") : "0";
-                const needToCover = parseFloat(needToCoverStr) || 0;
-
-                const turns = parseFloat(inputs.p_turns.value || inputs.p_turns.innerText) || 20;
-                const dailyLuckyRate = (parseFloat(inputs.p_dailyLuckyRate.value) || 0) / 100;
-                const luckyMul = parseFloat(inputs.p_luckyMul.value) || 0;
-
-                const newProfile = {
-                    name,
-                    startDate,
-                    luckyBalance,
-                    turns,
-                    luckyMul,
-                    dailyLuckyRate,
-                    needToCover,
-                    actualLixi: {},
-                };
-
-                const { profiles } = loadTrackerData();
-                const newId = 'profile_' + Date.now();
-                profiles[newId] = newProfile;
-                saveTrackerData(profiles, newId);
-                renderTracker();
-            } catch (e) {
-                alert("Lỗi tạo mới: " + e.message);
-                console.error(e);
-            }
-        });
-    }
-
-    if (btnRename) {
-        btnRename.addEventListener("click", async () => {
-            const { profiles, activeId } = loadTrackerData();
-            if (!activeId || !profiles[activeId]) return;
-
-            const name = await showPrompt("Nhập tên hồ sơ mới:", profiles[activeId].name);
-            if (!name || name === profiles[activeId].name) return;
-
-            profiles[activeId].name = name;
-            saveTrackerData(profiles, activeId);
-            renderTracker();
-        });
-    }
-
-    if (btnDelete) {
-        btnDelete.addEventListener("click", async () => {
-            const isConfirmed = await showConfirm("Chắc chắn xóa hồ sơ này?");
-            if (isConfirmed) {
-                const { profiles, activeId } = loadTrackerData();
-                delete profiles[activeId];
-                const keys = Object.keys(profiles);
-                const nextId = keys.length > 0 ? keys[0] : null;
-                saveTrackerData(profiles, nextId);
-                renderTracker();
-            }
-        });
-    }
-
-    const btnExport = document.getElementById("btn_export_profile");
-    if (btnExport) {
-        btnExport.addEventListener("click", () => {
-            const { profiles, activeId } = loadTrackerData();
-            if (!activeId || !profiles[activeId]) return;
-            const profile = profiles[activeId];
-            
-            let csvContent = "Ngày,Ngày tháng,Số dư đầu ngày,Lì xì dự kiến,Lì xì thực nhận,Tổng tiền rút,Số dư cuối ngày,Trạng thái\n";
-            
-            let currBalance = profile.luckyBalance;
-            let totalCash = 0;
-            let maxDay = 365;
-            const existingDays = Object.keys(profile.actualLixi).map(Number);
-            if (existingDays.length > 0) {
-              maxDay = Math.max(maxDay, Math.max(...existingDays) + 10);
-            }
-            const startObj = new Date(profile.startDate);
-            for (let day = 1; day <= maxDay; day++) {
-                const curD = new Date(startObj);
-                curD.setDate(startObj.getDate() + day);
-                const dateStr = `${curD.getDate().toString().padStart(2, '0')}/${(curD.getMonth()+1).toString().padStart(2, '0')}/${curD.getFullYear()}`;
-                
-                const expectedLixi = currBalance * profile.dailyLuckyRate;
-                const actualInput = profile.actualLixi[day];
-                const isInputted = actualInput !== undefined && actualInput !== null;
-                let genLixi = isInputted ? parseFloat(actualInput) : 0;
-                
-                totalCash += genLixi;
-                let endBalance = currBalance - genLixi;
-                let status = "Đang chạy";
-                if (totalCash >= profile.needToCover) {
-                  status = "Lãi: " + Math.round(totalCash - profile.needToCover);
-                } else {
-                  status = "Cần bù: " + Math.round(profile.needToCover - totalCash);
-                }
-                
-                csvContent += `${day},${dateStr},${Math.round(currBalance)},${Math.round(expectedLixi)},${isInputted ? actualInput : 0},${Math.round(totalCash)},${Math.round(endBalance)},${status}\n`;
-                currBalance = endBalance;
-            }
-            
-            // Add BOM for Excel UTF-8 support
-            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", `${profile.name.replace(/\s+/g, '_')}_data.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-    }
-};
-
-const btnOpenTracker = document.getElementById("btn_open_tracker");
-const btnQuickCreateProfile = document.getElementById("btn_quick_create_profile");
-const trackerModal = document.getElementById("tracker_modal");
-const btnCloseTracker = document.getElementById("btn_close_tracker");
-
-if (btnQuickCreateProfile) {
-    btnQuickCreateProfile.addEventListener("click", async () => {
-      try {
-        const name = await showPrompt("Nhập tên hồ sơ mới:", "Hồ sơ " + (Object.keys(loadTrackerData().profiles).length + 1));
-        if (!name) return;
-
-        let inputDateStr = await showPrompt("Ngày mua (DD/MM/YYYY):", (() => {
-            const d = new Date();
-            return d.getDate().toString().padStart(2, '0') + '/' + 
-                   (d.getMonth() + 1).toString().padStart(2, '0') + '/' + 
-                   d.getFullYear();
-        })());
-        if (!inputDateStr) return;
-
-        let startDate = inputDateStr;
-        const dParts = inputDateStr.split("/");
-        if (dParts.length === 3) {
-           startDate = `${dParts[2]}-${dParts[1]}-${dParts[0]}`;
-        }
-
-        // Read directly from DOM to match UI
-        const eSInitialBal = document.getElementById("s_initialBal");
-        const luckyBalanceStr = eSInitialBal ? eSInitialBal.innerText.replace(/[^\d]/g, "") : "0";
-        const luckyBalance = parseFloat(luckyBalanceStr) || 0;
-        
-        const eBNeedToCover = document.getElementById("b_needToCover");
-        const needToCoverStr = eBNeedToCover ? eBNeedToCover.innerText.replace(/[^\d]/g, "") : "0";
-        const needToCover = parseFloat(needToCoverStr) || 0;
-
-        const turns = parseFloat(inputs.p_turns.value || inputs.p_turns.innerText) || 20;
-        const dailyLuckyRate = (parseFloat(inputs.p_dailyLuckyRate.value) || 0) / 100;
-        const luckyMul = parseFloat(inputs.p_luckyMul.value) || 0;
-
-        const newProfile = {
-            name,
-            startDate,
-            luckyBalance,
-            turns,
-            luckyMul,
-            dailyLuckyRate,
-            needToCover,
-            actualLixi: {},
-        };
-
-        const { profiles } = loadTrackerData();
-        const newId = 'profile_' + Date.now();
-        profiles[newId] = newProfile;
-        saveTrackerData(profiles, newId);
-        
-        if (trackerModal) trackerModal.style.display = "flex";
-        renderTracker();
-      } catch (e) {
-        alert("Lỗi: " + e.message);
-        console.error(e);
-      }
-    });
-}
-
-if (btnOpenTracker) {
-  btnOpenTracker.addEventListener("click", () => {
-    if (trackerModal) trackerModal.style.display = "flex";
-    const now = new Date();
-    const localDate = now.toLocaleDateString("en-CA"); // YYYY-MM-DD
-    renderTracker(localDate);
-  });
-}
-if (btnCloseTracker) {
-  btnCloseTracker.addEventListener("click", () => {
-    if (trackerModal) trackerModal.style.display = "none";
-  });
-}
-
-const btnSaveDi = document.getElementById("btn_save_di");
-if (btnSaveDi) {
-    btnSaveDi.addEventListener("click", () => {
-        const inputEl = document.getElementById('di_actual_input');
-        const day = parseInt(inputEl.dataset.day);
-        if (isNaN(day)) return;
-        const val = inputEl.value;
-        const { profiles, activeId } = loadTrackerData();
-        if (!profiles || !profiles[activeId]) return;
-        
-        if (val !== "") {
-            profiles[activeId].actualLixi[day] = parseFloat(val);
-        } else {
-            delete profiles[activeId].actualLixi[day];
-        }
-        saveTrackerData(profiles, activeId);
-        document.getElementById('day_input_modal').style.display = 'none';
-        renderTracker();
-    });
-}
 
 // Initial setup
 window.addEventListener("load", () => {

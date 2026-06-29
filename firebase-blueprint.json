@@ -34,12 +34,57 @@
         "p_b_rate6",
         "p_b_rate7"
       ]
+    },
+    "User": {
+      "title": "User Account Profile",
+      "description": "User specific credentials, lucky balances, and warning thresholds",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "isProfileComplete": { "type": "boolean" },
+        "luckyShopAccount": { "type": "string" },
+        "luckyShopAccounts": { "type": "array" },
+        "luckyShopTeam": { "type": "string" },
+        "currentLuckyBalance": { "type": "number" },
+        "luckyLimit": { "type": "number" }
+      },
+      "required": [
+        "email",
+        "role",
+        "status"
+      ]
+    },
+    "Product": {
+      "title": "Product Entity",
+      "description": "A saved product with a name and price for easy calculations",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": [
+        "name",
+        "price"
+      ]
     }
   },
   "firestore": {
     "/configs/{configId}": {
       "schema": "Config",
       "description": "Global configuration documents"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User details, balance thresholds and status codes"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product catalog entries"
     }
   }
 }

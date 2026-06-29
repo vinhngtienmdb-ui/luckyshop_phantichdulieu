@@ -33,15 +33,6 @@
                 <h1>Lucky Shop Analytics</h1>
             </div>
             <div class="user-profile" style="display: flex; align-items: center; gap: 15px;">
-                <button id="btn_quick_create_profile" style="display: none; cursor: pointer; align-items: center; gap: 5px; font-weight: bold; background: #3b82f6; padding: 5px 15px; border-radius: 20px; border: none; color: white; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
-                    ➕ Tạo Hồ Sơ
-                </button>
-                <button id="btn_open_tracker" style="display: none; cursor: pointer; align-items: center; gap: 5px; font-weight: bold; background: #8b5cf6; padding: 5px 15px; border-radius: 20px; border: none; color: white; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
-                    📊 Theo Dõi Thực Tế
-                </button>
-                <button id="btn_refresh_data" style="cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #10b981; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
-                    <span id="refresh_icon" style="transition: transform 0.5s;">🔄</span> Làm mới
-                </button>
                 <button id="btn_login" style="cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #2563eb; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
                     🔐 Đăng nhập
                 </button>
@@ -55,9 +46,6 @@
                         <option value="kh" id="udr_opt_kh">Khách hàng (0%)</option>
                     </select>
                 </div>
-                <button id="btn_save_screen_defaults" style="display: none; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #f59e0b; padding: 5px 15px; border-radius: 20px; border: none; color: white;" title="Lưu số liệu màn hình chính hiện tại làm mặc định cho hệ thống">
-                    💾 Lưu Mặc định UI
-                </button>
                 <button id="btn_admin_panel" style="display: none; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #8b5cf6; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
                     ⚙️ Quản lý Hệ thống
                 </button>
@@ -65,7 +53,6 @@
                     👋 Đăng xuất
                 </button>
                 <input type="checkbox" id="admin_mode_toggle" style="display: none;">
-                <div><span class="status-indicator"></span> Live Projection Mode</div>
             </div>
         </header>
 
@@ -76,28 +63,55 @@
             <button onclick="this.parentElement.style.display='none'" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">&times;</button>
         </div>
 
+        <div id="limit_warning_banner" style="display: none; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px 20px; border-radius: 8px; margin: 20px 0 0 0; position: relative; font-weight: 600; font-size: 0.9rem; text-align: center; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.1);">
+            <span style="font-size: 1.1rem; vertical-align: middle; margin-right: 6px;">⚠️</span> 
+            <span id="limit_warning_text"></span>
+            <button onclick="this.parentElement.style.display='none'" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #991b1b; font-size: 1.2rem; cursor: pointer; font-weight: bold;">&times;</button>
+        </div>
+
         <!-- Mobile Tabs -->
         <div class="mobile-tabs-container">
             <button class="mobile-tab active" id="mtab_inputs">⚙️ Nhập Liệu</button>
             <button class="mobile-tab" id="mtab_results">📊 Kết Quả</button>
-            <button class="mobile-tab" id="mtab_tracker" style="display: none;" onclick="document.getElementById('btn_open_tracker').click()">📈 Thực Tế</button>
         </div>
 
         <!-- Main Content -->
         <main class="dashboard-grid mobile-tab-inputs" id="main_dashboard">
             
-            <div id="inline_tracker_banner" style="display: none; grid-column: 1 / -1; margin-bottom: 20px;">
-                 <button onclick="document.getElementById('btn_open_tracker').click()" style="width: 100%; background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                     📈 Xem Biểu đồ So Sánh Lì xì Thực Tế & Dự Phóng
-                 </button>
-            </div>
-
             <!-- Section 1: Inputs & Parameters -->
             <section class="top-row">
                 <!-- Card A: Thông số đầu vào -->
                 <div class="card param-card card-a">
                     <h2 class="card-title">⚙️ Thông Số Đầu Vào</h2>
                     <div class="input-list">
+                        <div class="input-group">
+                            <label style="margin-bottom: 4px;">Sản phẩm</label>
+                            <div style="width: 100%;">
+                                <select id="p_product_select" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; background: white; outline: none; margin-bottom: 10px;">
+                                    <option value="">-- Nhập thủ công --</option>
+                                    <option value="create_new">➕ Tạo sản phẩm mới...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Quick Product Creator -->
+                        <div id="quick_product_container" style="display: none; background: #f8fafc; border: 1px dashed #3b82f6; border-radius: 6px; padding: 12px; margin-bottom: 15px;">
+                            <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">✨ Tạo nhanh sản phẩm mới</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <div>
+                                    <input type="text" id="quick_p_name" placeholder="Tên sản phẩm (ví dụ: iPhone 15 Pro)" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none; background: white;">
+                                </div>
+                                <div class="input-wrapper" style="width: 100%;">
+                                    <input type="text" id="quick_p_price" placeholder="Giá sản phẩm (ví dụ: 4.000.000)" style="width: 100%; padding: 8px 35px 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none; background: white;">
+                                    <span class="unit" style="right: 10px; font-size: 0.8rem;">VNĐ</span>
+                                </div>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
+                                    <button type="button" id="btn_quick_cancel_product" style="padding: 4px 8px; background: #e2e8f0; color: #475569; border: none; border-radius: 4px; font-size: 0.78rem; cursor: pointer; font-weight: 600;">Hủy</button>
+                                    <button type="button" id="btn_quick_save_product" style="padding: 4px 10px; background: #10b981; color: white; border: none; border-radius: 4px; font-size: 0.78rem; cursor: pointer; font-weight: 600;">Lưu nhanh</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="input-group">
                             <label>Giá sản phẩm</label>
                             <div class="input-wrapper">
@@ -511,8 +525,17 @@
            <h3 style="margin-bottom: 10px; text-align: center; font-size: 1.3rem; color: #111;">Hoàn thiện thông tin</h3>
            <p style="font-size: 0.95rem; color: #555; margin-bottom: 25px; text-align: center; line-height: 1.5;">Vui lòng cập nhật thông tin cá nhân của bạn để gửi yêu cầu phê duyệt sử dụng hệ thống.</p>
            
-           <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #444; margin-bottom: 8px;">Tài khoản Lucky Shop</label>
-           <input type="text" id="profile_lucky_account" placeholder="Nhập tài khoản (ID/SĐT/Email)..." style="width: 100%; margin-bottom: 20px; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 1rem; outline: none;">
+           <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #444; margin-bottom: 4px;">Danh sách tài khoản Lucky Shop</label>
+           <span style="font-size: 0.8rem; color: #6b7280; display: block; margin-bottom: 8px;">Mỗi người có thể đăng ký nhiều tài khoản. Nhập và bấm Thêm:</span>
+           
+           <div id="reg_accounts_list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; max-height: 120px; overflow-y: auto; border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; background: #f8fafc;">
+               <div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>
+           </div>
+           
+           <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+               <input type="text" id="profile_lucky_account_input" placeholder="Nhập tài khoản (SĐT/Email/ID)..." style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none;">
+               <button type="button" id="btn_add_reg_account" style="background: #2563eb; color: white; border: none; border-radius: 8px; padding: 0 15px; font-weight: bold; cursor: pointer; transition: background 0.2s;">Thêm</button>
+           </div>
            
            <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #444; margin-bottom: 8px;">Tên Team / Đội nhóm</label>
            <input type="text" id="profile_team" placeholder="Nhập tên Team của bạn..." style="width: 100%; margin-bottom: 25px; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 1rem; outline: none;">
@@ -521,6 +544,62 @@
            <div id="profile_error" style="color: #ef4444; font-size: 0.85rem; margin-top: 15px; text-align: center; display: none; font-weight: 500;"></div>
        </div>
     </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="edit_profile_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1500; justify-content: center; align-items: center;">
+       <div style="background: white; padding: 25px; border-radius: 12px; width: 440px; max-width: 95vw; color: black; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow-y: auto; max-height: 90vh;">
+           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e1e8f0; padding-bottom: 10px;">
+               <h3 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 700;">⚙️ Thiết lập tài khoản</h3>
+               <button type="button" onclick="document.getElementById('edit_profile_modal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+           </div>
+           
+           <div style="display: flex; flex-direction: column; gap: 15px;">
+               <div>
+                   <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 4px;">Danh sách tài khoản Lucky Shop</label>
+                   <span style="font-size: 0.78rem; color: #64748b; display: block; margin-bottom: 8px;">Quản lý các tài khoản Lucky Shop liên kết với bạn:</span>
+                   
+                   <div id="edit_reg_accounts_list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; max-height: 120px; overflow-y: auto; border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; background: #f8fafc;">
+                       <div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>
+                   </div>
+                   
+                   <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                       <input type="text" id="edit_profile_lucky_account_input" placeholder="Nhập tài khoản (SĐT/Email/ID)..." style="flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'">
+                       <button type="button" id="btn_add_edit_account" style="background: #2563eb; color: white; border: none; border-radius: 6px; padding: 0 12px; font-weight: bold; cursor: pointer; transition: background 0.2s; font-size: 0.9rem;">Thêm</button>
+                   </div>
+               </div>
+               
+               <div>
+                   <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Tên Team / Đội nhóm</label>
+                   <input type="text" id="edit_profile_team" placeholder="Nhập tên Team của bạn..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'">
+               </div>
+
+               <div>
+                   <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Số dư Lì xì Hiện tại (VNĐ)</label>
+                   <div style="display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding-right: 10px;">
+                       <input type="number" id="edit_profile_curr_lixi" placeholder="0" style="width: 100%; padding: 10px; border: none; background: transparent; font-size: 1rem; font-weight: bold; color: #2563eb; outline: none; text-align: right;">
+                       <span style="color: #64748b; font-weight: 500; font-size: 0.9rem; margin-left: 5px;">VNĐ</span>
+                   </div>
+               </div>
+
+               <div>
+                   <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Hạn mức Lì xì Hàng ngày (VNĐ)</label>
+                   <div style="display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding-right: 10px;">
+                       <input type="number" id="edit_profile_lucky_limit" placeholder="Nhập hạn mức cảnh báo..." style="width: 100%; padding: 10px; border: none; background: transparent; font-size: 1rem; font-weight: bold; color: #dc2626; outline: none; text-align: right;">
+                       <span style="color: #64748b; font-weight: 500; font-size: 0.9rem; margin-left: 5px;">VNĐ</span>
+                   </div>
+                   <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 4px;">Hệ thống sẽ gửi cảnh báo nếu số dư lì xì hiện tại vượt quá hạn mức này.</span>
+               </div>
+           </div>
+
+           <div style="display: flex; gap: 10px; margin-top: 20px; border-top: 1px solid #e1e8f0; padding-top: 15px;">
+               <button type="button" onclick="document.getElementById('edit_profile_modal').style.display='none'" style="flex: 1; background: #f1f5f9; border: none; padding: 10px; border-radius: 6px; font-weight: 600; color: #475569; cursor: pointer; font-size: 0.9rem;">Hủy</button>
+               <button type="button" id="btn_save_edit_profile" style="flex: 1; background: #3b82f6; border: none; padding: 10px; border-radius: 6px; font-weight: 600; color: white; cursor: pointer; font-size: 0.9rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);">Áp dụng</button>
+           </div>
+           <div id="edit_profile_error" style="color: #ef4444; font-size: 0.85rem; margin-top: 10px; text-align: center; display: none; font-weight: 500;"></div>
+       </div>
+    </div>
+
+
 
     <div id="pending_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 900; justify-content: center; align-items: center;">
        <div style="text-align: center; max-width: 450px; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
@@ -545,6 +624,7 @@
                    <button class="admin-tab active" data-target="admin_tab_config" style="padding: 12px 20px; text-align: left; background: #e2e8f0; border: none; cursor: pointer; border-left: 3px solid #2563eb; font-weight: 500;">⚙️ Cấu Hình</button>
                    <button class="admin-tab" data-target="admin_tab_users" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">👥 Người Dùng</button>
                    <button class="admin-tab" data-target="admin_tab_roles" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">🏅 Chức Danh</button>
+                    <button class="admin-tab" data-target="admin_tab_products" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">📦 Sản Phẩm</button>
                    <button class="admin-tab" data-target="admin_tab_history" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">📜 Lịch Sử HT</button>
                </div>
                
@@ -724,7 +804,45 @@
                        </div>
                    </div>
 
-                   <!-- Tab 4: Lịch Sử Hệ Thống -->
+                   <!-- Tab 5: Quản lý Sản Phẩm -->
+                    <div id="admin_tab_products" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
+                        <h2 class="card-title">📦 Quản Lý Danh Sách Sản Phẩm</h2>
+                        <p class="subtitle-note">Thêm, sửa, xóa các sản phẩm trong hệ thống</p>
+                        
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+                            <!-- Add / Edit Product Form -->
+                            <div style="flex: 1; min-width: 250px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: fit-content;">
+                                <h4 id="pm_form_title" style="margin: 0; font-size: 0.95rem; color: #1e293b; font-weight: 700;">➕ Thêm sản phẩm mới</h4>
+                                <input type="hidden" id="pm_product_id" value="">
+                                
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div>
+                                        <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Tên sản phẩm</label>
+                                        <input type="text" id="pm_p_name" placeholder="Ví dụ: iPhone 15 Pro Max" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Giá sản phẩm (VNĐ)</label>
+                                        <input type="text" id="pm_p_price" placeholder="Ví dụ: 4.000.000" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px;">
+                                    <button type="button" id="btn_pm_cancel" style="display: none; padding: 6px 12px; background: #e2e8f0; color: #475569; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;">Hủy sửa</button>
+                                    <button type="button" id="btn_pm_save" style="padding: 6px 15px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;">Lưu sản phẩm</button>
+                                </div>
+                            </div>
+                            
+                            <!-- List of products -->
+                            <div style="flex: 1.2; min-width: 280px; display: flex; flex-direction: column; gap: 8px;">
+                                <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569;">Danh sách sản phẩm hiện tại</label>
+                                <div id="pm_products_list" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; background: #f8fafc;">
+                                    <div style="font-style: italic; color: #94a3b8; text-align: center; padding: 10px 0;">Đang tải danh sách sản phẩm...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Lịch Sử Hệ Thống -->
                    <div id="admin_tab_history" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
                        <h2 class="card-title">📜 Lịch Sử Hoạt Động Của Hệ Thống</h2>
                        <p class="subtitle-note">Lưu trữ các thao tác quan trọng của người dùng</p>
@@ -751,63 +869,6 @@
                </div>
            </div>
        </div>
-    </div>
-
-    <!-- Tracker Modal -->
-    <div id="tracker_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1001; justify-content: center; align-items: center;">
-        <div style="background: white; width: 98%; max-width: 1200px; height: 95vh; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 25px rgba(0,0,0,0.2);">
-            <div style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-                <h2 style="margin: 0; font-size: 1.25rem;">📊 Theo Dõi Đầu Tư Thực Tế</h2>
-                <button id="btn_close_tracker" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280;">&times;</button>
-            </div>
-            <div id="tracker_content" style="padding: 20px; overflow-y: auto; flex: 1;">
-                <!-- Content injected by JS -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Day Input Modal (Tracker) -->
-    <div id="day_input_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10005; justify-content: center; align-items: center; padding: 15px;">
-        <div style="background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-            <h3 style="margin-top:0; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 10px; text-align: center; color: #334155;" id="di_title">Nhập Lì Xì</h3>
-            
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem;">
-                <span style="color:#64748b;">Số dư đầu ngày:</span>
-                <span id="di_start_bal" style="font-weight:600; color:#334155;"></span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.95rem;">
-                <span style="color:#64748b;">Dự kiến hôm nay:</span>
-                <span id="di_expected" style="font-weight:600; color:#8b5cf6;"></span>
-            </div>
-            
-            <div style="margin-bottom: 15px;">
-                <label style="display:block; color:#64748b; font-size: 0.95rem; margin-bottom: 5px;">Thực nhận:</label>
-                <div style="display: flex; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding-right: 10px;">
-                    <input type="number" id="di_actual_input" placeholder="0" style="width: 100%; padding: 10px; border: none; background: transparent; font-size: 1.2rem; font-weight: bold; color: #2563eb; outline: none; text-align: right;">
-                    <span style="color: #64748b; font-weight: 500;">VNĐ</span>
-                </div>
-            </div>
-            
-            <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed #cbd5e1;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem;">
-                    <span style="color:#64748b;">Lũy kế dự tính:</span>
-                    <span id="di_accumulated" style="font-weight:700; color:#0ea5e9;"></span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem;">
-                    <span style="color:#64748b;">Số dư cuối ngày:</span>
-                    <span id="di_end_bal" style="font-weight:700; color:#334155;"></span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                    <span style="color:#64748b;">Trạng thái:</span>
-                    <span id="di_status" style="font-weight:700; text-align: right;"></span>
-                </div>
-            </div>
-            
-            <div style="display: flex; gap: 10px;">
-                <button onclick="document.getElementById('day_input_modal').style.display='none'" style="flex: 1; background:#e2e8f0; border:none; padding:12px; border-radius:8px; font-weight:bold; color:#475569; cursor:pointer; font-size: 0.95rem;">Hủy</button>
-                <button id="btn_save_di" style="flex: 1; background:#10b981; border:none; padding:12px; border-radius:8px; font-weight:bold; color:white; cursor:pointer; font-size: 0.95rem; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">Lưu</button>
-            </div>
-        </div>
     </div>
 
     <script type="module" src="app.js"></script>
