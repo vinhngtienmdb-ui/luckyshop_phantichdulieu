@@ -71,6 +71,44 @@
         "name",
         "price"
       ]
+    },
+    "AgriProduct": {
+      "title": "Agricultural Product Entity",
+      "description": "A saved agricultural product with name, marketPrice, promoPrice, and bulk configurations",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "marketPrice": { "type": "number" },
+        "promoPrice": { "type": "number" },
+        "bulkBuy": { "type": "number" },
+        "bulkGift": { "type": "number" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": [
+        "name",
+        "marketPrice",
+        "promoPrice"
+      ]
+    },
+    "AgriState": {
+      "title": "Agricultural Simulation State",
+      "description": "State for simulated VN agricultural market sandbox",
+      "type": "object",
+      "properties": {
+        "cash": { "type": "number" },
+        "lixi": { "type": "number" },
+        "points": { "type": "number" },
+        "holdings": { "type": "array" },
+        "listedItems": { "type": "array" },
+        "f1Network": { "type": "array" },
+        "simulatedDateString": { "type": "string" }
+      },
+      "required": [
+        "cash",
+        "lixi",
+        "points"
+      ]
     }
   },
   "firestore": {
@@ -85,6 +123,14 @@
     "/products/{productId}": {
       "schema": "Product",
       "description": "Product catalog entries"
+    },
+    "/agri_products/{productId}": {
+      "schema": "AgriProduct",
+      "description": "Agricultural product catalog entries"
+    },
+    "/agri_states/{userId}": {
+      "schema": "AgriState",
+      "description": "Simulation state for the VN Agricultural module per user"
     }
   }
 }

@@ -11,6 +11,8 @@ const formatPercent = (num) => {
 let globalUsersList = [];
 let updateUcheckDropdowns = () => {};
 let runUcheckCalculations = () => {};
+let db;
+let auth;
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 import {
@@ -87,11 +89,11 @@ const firebaseConfig = {
 // Khởi tạo Firebase nếu thư viện đã được load
 if (true) {
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(
+  db = getFirestore(
     app,
     "ai-studio-855a4b8a-5ffb-4334-8296-6a2455e93c44",
   );
-  const auth = getAuth(app);
+  auth = getAuth(app);
 
   const btnLogin = document.getElementById("btn_login");
   const btnLogout = document.getElementById("btn_logout");
@@ -119,24 +121,39 @@ if (true) {
   const mtabResults = document.getElementById("mtab_results");
   const mainDashboard = document.getElementById("main_dashboard");
 
-  if (mtabInputs && mtabResults && mainDashboard) {
+  if (mtabInputs && mtabResults) {
       mtabInputs.addEventListener("click", () => {
           mtabInputs.classList.add("active");
           mtabResults.classList.remove("active");
-          mainDashboard.classList.add("mobile-tab-inputs");
-          mainDashboard.classList.remove("mobile-tab-results");
+          if (mainDashboard) {
+              mainDashboard.classList.add("mobile-tab-inputs");
+              mainDashboard.classList.remove("mobile-tab-results");
+          }
+          const agriDashboard = document.getElementById("agri_dashboard");
+          if (agriDashboard) {
+              agriDashboard.classList.add("mobile-tab-inputs");
+              agriDashboard.classList.remove("mobile-tab-results");
+          }
       });
       mtabResults.addEventListener("click", () => {
           mtabResults.classList.add("active");
           mtabInputs.classList.remove("active");
-          mainDashboard.classList.add("mobile-tab-results");
-          mainDashboard.classList.remove("mobile-tab-inputs");
+          if (mainDashboard) {
+              mainDashboard.classList.add("mobile-tab-results");
+              mainDashboard.classList.remove("mobile-tab-inputs");
+          }
+          const agriDashboard = document.getElementById("agri_dashboard");
+          if (agriDashboard) {
+              agriDashboard.classList.add("mobile-tab-results");
+              agriDashboard.classList.remove("mobile-tab-inputs");
+          }
       });
   }
 
   let currentUserRole = "user";
   let currentUserData = null;
   let userSnapshotUnsub = null;
+  let agriStateUnsub = null;
   let usersListUnsub = null;
   let historyListUnsub = null;
   globalUsersList = [];
@@ -347,25 +364,39 @@ if (true) {
   const userDefaultRankSelect = document.getElementById("user_default_rank");
   if (userDefaultRankSelect) {
     userDefaultRankSelect.addEventListener("change", (e) => {
+      const selectedRank = e.target.value;
       if (auth.currentUser) {
         updateDoc(doc(db, "users", auth.currentUser.uid), {
-          defaultRank: e.target.value,
+          defaultRank: selectedRank,
         })
           .then(() => {
             showToast("Đã lưu chức danh mặc định!", "success");
-            logAction("Cập nhật chức danh mặc định cá nhân", { defaultRank: e.target.value });
+            logAction("Cập nhật chức danh mặc định cá nhân", { defaultRank: selectedRank });
           })
           .catch((err) =>
             showToast("Lỗi lưu chức danh: " + err.message, "error"),
           );
       }
 
+      // Sync Gom nhóm Rank
       const u_rank = document.getElementById("u_rank");
       if (u_rank) {
-        u_rank.value = e.target.value;
+        u_rank.value = selectedRank;
         if (typeof updateSubordinateVisibility === "function")
           updateSubordinateVisibility();
         if (typeof calculate === "function") calculate();
+      }
+
+      // Sync Nông sản Rank
+      if (window.agriState) {
+        window.agriState.rank = selectedRank;
+        const selectRank = document.getElementById("calc_agri_rank");
+        if (selectRank) {
+          selectRank.value = selectedRank;
+        }
+        if (typeof window.renderAgriDashboard === "function") {
+          window.renderAgriDashboard();
+        }
       }
     });
   }
@@ -775,6 +806,10 @@ if (true) {
       userSnapshotUnsub();
       userSnapshotUnsub = null;
     }
+    if (agriStateUnsub) {
+      agriStateUnsub();
+      agriStateUnsub = null;
+    }
     if (usersListUnsub) {
       usersListUnsub();
       usersListUnsub = null;
@@ -883,14 +918,22 @@ if (true) {
                 isApproved = true;
                 document.getElementById("profile_modal").style.display = "none";
                 document.getElementById("pending_modal").style.display = "none";
-                document.getElementById("main_dashboard").style.display = ""; 
+                if (typeof window.updateDashboardVisibility === "function") {
+                  window.updateDashboardVisibility();
+                } else {
+                  document.getElementById("main_dashboard").style.display = "";
+                }
                 document.getElementById("require_login_overlay").style.display = "none";
              }
           } else {
              isApproved = true;
              document.getElementById("profile_modal").style.display = "none";
              document.getElementById("pending_modal").style.display = "none";
-             document.getElementById("main_dashboard").style.display = "";
+             if (typeof window.updateDashboardVisibility === "function") {
+               window.updateDashboardVisibility();
+             } else {
+               document.getElementById("main_dashboard").style.display = "";
+             }
              document.getElementById("require_login_overlay").style.display = "none";
           }
 
@@ -910,6 +953,16 @@ if (true) {
               if (typeof updateSubordinateVisibility === "function")
                 updateSubordinateVisibility();
               if (typeof calculate === "function") calculate();
+            }
+            if (window.agriState) {
+              window.agriState.rank = data.defaultRank;
+              const selectRank = document.getElementById("calc_agri_rank");
+              if (selectRank) {
+                selectRank.value = data.defaultRank;
+              }
+              if (typeof window.renderAgriDashboard === "function") {
+                window.renderAgriDashboard();
+              }
             }
           }
         } else {
@@ -954,12 +1007,55 @@ if (true) {
           }
         }
       }, (error) => console.error("Error reading user data:", error));
+
+      const agriRef = doc(db, "agri_states", user.uid);
+      agriStateUnsub = onSnapshot(agriRef, (docSnap) => {
+        if (docSnap.exists() && window.agriState) {
+          const data = docSnap.data();
+          if (data.selectedProductId !== undefined) window.agriState.selectedProductId = data.selectedProductId;
+          if (data.customProduct !== undefined) window.agriState.customProduct = { ...window.agriState.customProduct, ...data.customProduct };
+          if (data.qty !== undefined) window.agriState.qty = data.qty;
+          if (data.option !== undefined) window.agriState.option = data.option;
+          if (data.resaleUnitPrice !== undefined) window.agriState.resaleUnitPrice = data.resaleUnitPrice;
+          if (data.resaleFeePercent !== undefined) window.agriState.resaleFeePercent = data.resaleFeePercent;
+          if (data.resaleSellGift !== undefined) window.agriState.resaleSellGift = data.resaleSellGift;
+          if (data.rank !== undefined) {
+            window.agriState.rank = data.rank;
+            const udr = document.getElementById("user_default_rank");
+            if (udr && udr.value !== data.rank) {
+              udr.value = data.rank;
+              const u_rank = document.getElementById("u_rank");
+              if (u_rank) {
+                u_rank.value = data.rank;
+                if (typeof updateSubordinateVisibility === "function")
+                  updateSubordinateVisibility();
+                if (typeof calculate === "function") calculate();
+              }
+            }
+          }
+          if (data.personalSales !== undefined) window.agriState.personalSales = data.personalSales;
+          if (data.f1Sales !== undefined) window.agriState.f1Sales = data.f1Sales;
+          if (data.otherGroupSales !== undefined) window.agriState.otherGroupSales = data.otherGroupSales;
+          if (data.f1Network !== undefined) window.agriState.f1Network = data.f1Network;
+          
+          if (typeof window.renderAgriDashboard === "function") {
+            window.renderAgriDashboard();
+          }
+        }
+      }, (error) => {
+        console.error("Lỗi đồng bộ dữ liệu Nông Sản:", error);
+      });
     } else {
       currentUserRole = "user";
-      document.getElementById("require_login_overlay").style.display = "flex";
-      document.getElementById("profile_modal").style.display = "none";
-      document.getElementById("pending_modal").style.display = "none";
+      const requireLoginOverlay = document.getElementById("require_login_overlay");
+      if (requireLoginOverlay) requireLoginOverlay.style.display = "flex";
+      const profileModal = document.getElementById("profile_modal");
+      if (profileModal) profileModal.style.display = "none";
+      const pendingModal = document.getElementById("pending_modal");
+      if (pendingModal) pendingModal.style.display = "none";
       if(mainDashboard) mainDashboard.style.display = "none";
+      if(document.getElementById("agri_dashboard")) document.getElementById("agri_dashboard").style.display = "none";
+      if(document.getElementById("main_module_switcher")) document.getElementById("main_module_switcher").style.display = "none";
 
       if (btnLogin) btnLogin.style.display = "flex";
       if (btnLogout) btnLogout.style.display = "none";
@@ -1341,12 +1437,18 @@ if (true) {
         const id = e.target.getAttribute("data-id");
         const prod = globalProductsList.find(p => p.id === id);
         if (prod) {
-          document.getElementById("pm_product_id").value = prod.id;
-          document.getElementById("pm_p_name").value = prod.name;
-          document.getElementById("pm_p_price").value = new Intl.NumberFormat("vi-VN").format(prod.price);
-          document.getElementById("pm_form_title").textContent = "✏️ Sửa sản phẩm";
-          document.getElementById("btn_pm_cancel").style.display = "inline-block";
-          document.getElementById("pm_p_name").focus();
+          const pmIdEl = document.getElementById("pm_product_id");
+          const pmNameEl = document.getElementById("pm_p_name");
+          const pmPriceEl = document.getElementById("pm_p_price");
+          const pmFormTitleEl = document.getElementById("pm_form_title");
+          const pmCancelEl = document.getElementById("btn_pm_cancel");
+          
+          if (pmIdEl) pmIdEl.value = prod.id;
+          if (pmNameEl) pmNameEl.value = prod.name;
+          if (pmPriceEl) pmPriceEl.value = new Intl.NumberFormat("vi-VN").format(prod.price);
+          if (pmFormTitleEl) pmFormTitleEl.textContent = "✏️ Sửa sản phẩm";
+          if (pmCancelEl) pmCancelEl.style.display = "inline-block";
+          if (pmNameEl) pmNameEl.focus();
         }
       });
     });
@@ -1551,6 +1653,247 @@ if (true) {
     console.error("Lỗi lấy danh sách sản phẩm:", error);
   });
 
+  // --- AGRICULTURAL PRODUCT MANAGEMENT FEATURE ---
+  const updateAgriProductsSelect = () => {
+    const selectProduct = document.getElementById("calc_agri_product");
+    if (!selectProduct) return;
+    
+    const currentValue = selectProduct.value;
+    selectProduct.innerHTML = '<option value="custom">-- Nhập sản phẩm tự chọn --</option>';
+    
+    const agriProducts = window.agriProducts || [];
+    agriProducts.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.name} (${new Intl.NumberFormat("vi-VN").format(p.promoPrice)} đ)`;
+      selectProduct.appendChild(opt);
+    });
+
+    // Auto-pin/select "Đường mạch nha" on initial load if it exists in list
+    if (window.agriState && !window.hasAgriFirstLoadPinned) {
+      const machNha = agriProducts.find(p => p.name && (p.name.toLowerCase().includes("mạch nha") || p.name.toLowerCase().includes("mach nha")));
+      if (machNha) {
+        window.agriState.selectedProductId = machNha.id;
+        window.agriState.resaleUnitPrice = machNha.marketPrice;
+        window.hasAgriFirstLoadPinned = true;
+      }
+    }
+    
+    if (agriState.selectedProductId && [...selectProduct.options].some(o => o.value === agriState.selectedProductId)) {
+      selectProduct.value = agriState.selectedProductId;
+    } else if (currentValue && [...selectProduct.options].some(o => o.value === currentValue)) {
+      selectProduct.value = currentValue;
+    } else {
+      selectProduct.value = "custom";
+      agriState.selectedProductId = "custom";
+    }
+  };
+
+  const updateAgriProductsManagerList = () => {
+    const listEl = document.getElementById("pm_agri_products_list");
+    if (!listEl) return;
+    
+    const agriProducts = window.agriProducts || [];
+    if (agriProducts.length === 0) {
+      listEl.innerHTML = `<div style="font-style: italic; color: #94a3b8; text-align: center; padding: 15px 0;">Chưa có sản phẩm nông sản nào. Hãy thêm ở trên!</div>`;
+      return;
+    }
+    
+    listEl.innerHTML = "";
+    agriProducts.forEach(p => {
+      const item = document.createElement("div");
+      item.style.display = "flex";
+      item.style.justifyContent = "space-between";
+      item.style.alignItems = "center";
+      item.style.padding = "8px 12px";
+      item.style.background = "white";
+      item.style.border = "1px solid #cbd5e1";
+      item.style.borderRadius = "6px";
+      item.style.boxShadow = "0 1px 2px rgba(0,0,0,0.02)";
+      item.style.marginBottom = "6px";
+      
+      const formattedPromoPrice = new Intl.NumberFormat("vi-VN").format(p.promoPrice);
+      const formattedMarketPrice = new Intl.NumberFormat("vi-VN").format(p.marketPrice);
+      
+      item.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">${p.name}</span>
+          <span style="font-weight: 500; color: #16a34a; font-size: 0.85rem;">KM: ${formattedPromoPrice} đ (Gốc: ${formattedMarketPrice} đ)</span>
+          <span style="font-size: 0.75rem; color: #64748b;">Sỉ: Mua ${p.bulkPromo.buy} tặng ${p.bulkPromo.gift}</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" class="btn-edit-agri-prod" data-id="${p.id}" style="padding: 4px 8px; background: #f0fdf4; color: #16a34a; border: none; border-radius: 4px; font-size: 0.78rem; cursor: pointer; font-weight: 600; transition: all 0.2s;">Sửa</button>
+          <button type="button" class="btn-delete-agri-prod" data-id="${p.id}" style="padding: 4px 8px; background: #fef2f2; color: #ef4444; border: none; border-radius: 4px; font-size: 0.78rem; cursor: pointer; font-weight: 600; transition: all 0.2s;">Xóa</button>
+        </div>
+      `;
+      listEl.appendChild(item);
+    });
+    
+    listEl.querySelectorAll(".btn-edit-agri-prod").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.target.getAttribute("data-id");
+        const prod = agriProducts.find(p => p.id === id);
+        if (prod) {
+          document.getElementById("pm_agri_product_id").value = prod.id;
+          document.getElementById("pm_agri_p_name").value = prod.name;
+          document.getElementById("pm_agri_p_market_price").value = new Intl.NumberFormat("vi-VN").format(prod.marketPrice);
+          document.getElementById("pm_agri_p_promo_price").value = new Intl.NumberFormat("vi-VN").format(prod.promoPrice);
+          document.getElementById("pm_agri_p_bulk_buy").value = prod.bulkPromo.buy;
+          document.getElementById("pm_agri_p_bulk_gift").value = prod.bulkPromo.gift;
+          document.getElementById("pm_agri_form_title").textContent = "✏️ Sửa sản phẩm nông sản";
+          document.getElementById("btn_pm_agri_cancel").style.display = "inline-block";
+          document.getElementById("pm_agri_p_name").focus();
+        }
+      });
+    });
+    
+    listEl.querySelectorAll(".btn-delete-agri-prod").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.target.getAttribute("data-id");
+        const prod = agriProducts.find(p => p.id === id);
+        if (prod && confirm(`Bạn có chắc chắn muốn xóa sản phẩm nông sản "${prod.name}" không?`)) {
+          try {
+            await deleteDoc(doc(db, "agri_products", id));
+            showToast("Đã xóa sản phẩm nông sản thành công", "success");
+            logAction("Xóa sản phẩm nông sản", { productId: id, name: prod.name });
+            const agriProductSelect = document.getElementById("calc_agri_product");
+            if (agriProductSelect && agriProductSelect.value === id) {
+              agriProductSelect.value = "custom";
+              agriState.selectedProductId = "custom";
+              window.renderAgriDashboard();
+            }
+          } catch (err) {
+            showToast("Lỗi khi xóa sản phẩm: " + err.message, "error");
+          }
+        }
+      });
+    });
+  };
+
+  const pmAgriProductId = document.getElementById("pm_agri_product_id");
+  const pmAgriPName = document.getElementById("pm_agri_p_name");
+  const pmAgriPMarketPrice = document.getElementById("pm_agri_p_market_price");
+  const pmAgriPPromoPrice = document.getElementById("pm_agri_p_promo_price");
+  const pmAgriPBulkBuy = document.getElementById("pm_agri_p_bulk_buy");
+  const pmAgriPBulkGift = document.getElementById("pm_agri_p_bulk_gift");
+  const btnPmAgriCancel = document.getElementById("btn_pm_agri_cancel");
+  const btnPmAgriSave = document.getElementById("btn_pm_agri_save");
+
+  if (pmAgriPMarketPrice) {
+    pmAgriPMarketPrice.addEventListener("input", formatAsCurrencyInput);
+  }
+  if (pmAgriPPromoPrice) {
+    pmAgriPPromoPrice.addEventListener("input", formatAsCurrencyInput);
+  }
+
+  if (btnPmAgriCancel) {
+    btnPmAgriCancel.addEventListener("click", () => {
+      if (pmAgriProductId) pmAgriProductId.value = "";
+      if (pmAgriPName) pmAgriPName.value = "";
+      if (pmAgriPMarketPrice) pmAgriPMarketPrice.value = "";
+      if (pmAgriPPromoPrice) pmAgriPPromoPrice.value = "";
+      if (pmAgriPBulkBuy) pmAgriPBulkBuy.value = "10";
+      if (pmAgriPBulkGift) pmAgriPBulkGift.value = "1";
+      btnPmAgriCancel.style.display = "none";
+      const title = document.getElementById("pm_agri_form_title");
+      if (title) title.textContent = "➕ Thêm sản phẩm nông sản mới";
+    });
+  }
+
+  if (btnPmAgriSave) {
+    btnPmAgriSave.addEventListener("click", async () => {
+      const id = pmAgriProductId ? pmAgriProductId.value : "";
+      const name = pmAgriPName ? pmAgriPName.value.trim() : "";
+      const marketPriceStr = pmAgriPMarketPrice ? pmAgriPMarketPrice.value.replace(/\D/g, "") : "";
+      const marketPrice = parseFloat(marketPriceStr) || 0;
+      const promoPriceStr = pmAgriPPromoPrice ? pmAgriPPromoPrice.value.replace(/\D/g, "") : "";
+      const promoPrice = parseFloat(promoPriceStr) || 0;
+      const bulkBuy = pmAgriPBulkBuy ? parseInt(pmAgriPBulkBuy.value, 10) || 10 : 10;
+      const bulkGift = pmAgriPBulkGift ? parseInt(pmAgriPBulkGift.value, 10) || 1 : 1;
+      
+      if (!name) {
+        showToast("Vui lòng nhập tên sản phẩm nông sản", "error");
+        return;
+      }
+      if (marketPrice <= 0) {
+        showToast("Giá thị trường phải lớn hơn 0 VNĐ", "error");
+        return;
+      }
+      if (promoPrice <= 0) {
+        showToast("Giá khuyến mại phải lớn hơn 0 VNĐ", "error");
+        return;
+      }
+      
+      try {
+        btnPmAgriSave.disabled = true;
+        if (id) {
+          await updateDoc(doc(db, "agri_products", id), {
+            name,
+            marketPrice,
+            promoPrice,
+            bulkBuy,
+            bulkGift
+          });
+          showToast("Cập nhật sản phẩm nông sản thành công", "success");
+          logAction("Sửa sản phẩm nông sản", { productId: id, name, marketPrice, promoPrice, bulkBuy, bulkGift });
+        } else {
+          await addDoc(collection(db, "agri_products"), {
+            name,
+            marketPrice,
+            promoPrice,
+            bulkBuy,
+            bulkGift,
+            createdBy: auth.currentUser ? auth.currentUser.email : "guest",
+            createdAt: new Date().toISOString()
+          });
+          showToast("Thêm sản phẩm nông sản thành công", "success");
+          logAction("Tạo sản phẩm nông sản", { name, marketPrice, promoPrice, bulkBuy, bulkGift });
+        }
+        
+        if (pmAgriProductId) pmAgriProductId.value = "";
+        if (pmAgriPName) pmAgriPName.value = "";
+        if (pmAgriPMarketPrice) pmAgriPMarketPrice.value = "";
+        if (pmAgriPPromoPrice) pmAgriPPromoPrice.value = "";
+        if (pmAgriPBulkBuy) pmAgriPBulkBuy.value = "10";
+        if (pmAgriPBulkGift) pmAgriPBulkGift.value = "1";
+        if (btnPmAgriCancel) btnPmAgriCancel.style.display = "none";
+        const title = document.getElementById("pm_agri_form_title");
+        if (title) title.textContent = "➕ Thêm sản phẩm nông sản mới";
+      } catch (err) {
+        showToast("Lỗi khi lưu sản phẩm nông sản: " + err.message, "error");
+      } finally {
+        btnPmAgriSave.disabled = false;
+      }
+    });
+  }
+
+  // Connect real-time stream for agricultural products
+  onSnapshot(query(collection(db, "agri_products"), orderBy("createdAt", "desc")), (snapshot) => {
+    const list = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      list.push({
+        id: docSnap.id,
+        name: data.name,
+        marketPrice: data.marketPrice,
+        promoPrice: data.promoPrice,
+        bulkPromo: {
+          buy: data.bulkBuy || 10,
+          gift: data.bulkGift || 1
+        }
+      });
+    });
+    window.agriProducts.length = 0;
+    window.agriProducts.push(...list);
+    updateAgriProductsSelect();
+    updateAgriProductsManagerList();
+    if (typeof window.renderAgriDashboard === "function") {
+      window.renderAgriDashboard();
+    }
+  }, (error) => {
+    console.error("Lỗi lấy danh sách sản phẩm nông sản:", error);
+  });
+
   onSnapshot(doc(db, "configs", "main"), (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
@@ -1562,8 +1905,14 @@ if (true) {
       setVal("a_max_gd", data.a_max_gd);
       setVal("a_max_ql", data.a_max_ql);
       setVal("a_max_nv", data.a_max_nv);
+      setVal("a_agri_max_tgd", data.a_agri_max_tgd !== undefined ? data.a_agri_max_tgd : data.a_max_tgd);
+      setVal("a_agri_max_gd", data.a_agri_max_gd !== undefined ? data.a_agri_max_gd : data.a_max_gd);
+      setVal("a_agri_max_ql", data.a_agri_max_ql !== undefined ? data.a_agri_max_ql : data.a_max_ql);
+      setVal("a_agri_max_nv", data.a_agri_max_nv !== undefined ? data.a_agri_max_nv : data.a_max_nv);
       setVal("a_max_direct", data.a_max_direct);
       setVal("a_max_indirect", data.a_max_indirect);
+      setVal("a_agri_max_direct", data.a_agri_max_direct !== undefined ? data.a_agri_max_direct : data.a_max_direct);
+      setVal("a_agri_max_indirect", data.a_agri_max_indirect !== undefined ? data.a_agri_max_indirect : data.a_max_indirect);
       setVal("p_b_rate1", data.p_b_rate1);
       setVal("p_b_rate2", data.p_b_rate2);
       setVal("p_b_rate3", data.p_b_rate3);
@@ -1610,7 +1959,8 @@ if (true) {
       btnPreviewPromo.addEventListener("click", () => {
           window.isPromoPreviewActive = true;
           calculate(); // Triggers config application and shows UI
-          document.getElementById('admin_modal').style.display = 'none'; // Close admin config temporarily
+          const adminModalEl = document.getElementById('admin_modal');
+          if (adminModalEl) adminModalEl.style.display = 'none'; // Close admin config temporarily
       });
   }
 
@@ -1632,8 +1982,14 @@ if (true) {
         a_max_gd: getVal("a_max_gd"),
         a_max_ql: getVal("a_max_ql"),
         a_max_nv: getVal("a_max_nv"),
+        a_agri_max_tgd: getVal("a_agri_max_tgd"),
+        a_agri_max_gd: getVal("a_agri_max_gd"),
+        a_agri_max_ql: getVal("a_agri_max_ql"),
+        a_agri_max_nv: getVal("a_agri_max_nv"),
         a_max_direct: getVal("a_max_direct"),
         a_max_indirect: getVal("a_max_indirect"),
+        a_agri_max_direct: getVal("a_agri_max_direct"),
+        a_agri_max_indirect: getVal("a_agri_max_indirect"),
         p_b_rate1: getVal("p_b_rate1"),
         p_b_rate2: getVal("p_b_rate2"),
         p_b_rate3: getVal("p_b_rate3"),
@@ -1705,6 +2061,8 @@ const inputs = {
   a_max_tgd: document.getElementById("a_max_tgd"),
   a_max_direct: document.getElementById("a_max_direct"),
   a_max_indirect: document.getElementById("a_max_indirect"),
+  a_agri_max_direct: document.getElementById("a_agri_max_direct"),
+  a_agri_max_indirect: document.getElementById("a_agri_max_indirect"),
 };
 
 // Calculated DOM Elements
@@ -2384,27 +2742,27 @@ const updateSubordinateVisibility = () => {
   const nvChk = document.getElementById("u_chk_nv");
 
   if (rank === "tgd") {
-    gdChk.style.display = "block";
-    qlChk.style.display = "block";
-    nvChk.style.display = "block";
+    if (gdChk) gdChk.style.display = "block";
+    if (qlChk) qlChk.style.display = "block";
+    if (nvChk) nvChk.style.display = "block";
   } else if (rank === "gd") {
-    gdChk.style.display = "none";
-    inputs.u_sub_gd.checked = false;
-    qlChk.style.display = "block";
-    nvChk.style.display = "block";
+    if (gdChk) gdChk.style.display = "none";
+    if (inputs.u_sub_gd) inputs.u_sub_gd.checked = false;
+    if (qlChk) qlChk.style.display = "block";
+    if (nvChk) nvChk.style.display = "block";
   } else if (rank === "ql") {
-    gdChk.style.display = "none";
-    inputs.u_sub_gd.checked = false;
-    qlChk.style.display = "none";
-    inputs.u_sub_ql.checked = false;
-    nvChk.style.display = "block";
+    if (gdChk) gdChk.style.display = "none";
+    if (inputs.u_sub_gd) inputs.u_sub_gd.checked = false;
+    if (qlChk) qlChk.style.display = "none";
+    if (inputs.u_sub_ql) inputs.u_sub_ql.checked = false;
+    if (nvChk) nvChk.style.display = "block";
   } else {
-    gdChk.style.display = "none";
-    inputs.u_sub_gd.checked = false;
-    qlChk.style.display = "none";
-    inputs.u_sub_ql.checked = false;
-    nvChk.style.display = "none";
-    inputs.u_sub_nv.checked = false;
+    if (gdChk) gdChk.style.display = "none";
+    if (inputs.u_sub_gd) inputs.u_sub_gd.checked = false;
+    if (qlChk) qlChk.style.display = "none";
+    if (inputs.u_sub_ql) inputs.u_sub_ql.checked = false;
+    if (nvChk) nvChk.style.display = "none";
+    if (inputs.u_sub_nv) inputs.u_sub_nv.checked = false;
   }
   calculate();
 };
@@ -2615,4 +2973,672 @@ window.addEventListener("load", () => {
   if (inputs.u_rank) updateSubordinateVisibility();
   if (inputs.admin_mode_toggle) toggleAdminMode();
   calculate();
+});
+
+// Module switching and dashboard visibility manager
+let activeModule = localStorage.getItem("active_module") || "pool";
+
+const updateDashboardVisibility = () => {
+  const mainSwitcher = document.getElementById("main_module_switcher");
+  const mainDash = document.getElementById("main_dashboard");
+  const agriDash = document.getElementById("agri_dashboard");
+  const btnPool = document.getElementById("btn_module_pool");
+  const btnAgri = document.getElementById("btn_module_agri");
+  const pendingModal = document.getElementById("pending_modal");
+  const profileModal = document.getElementById("profile_modal");
+  const mobileTabs = document.querySelector(".mobile-tabs-container");
+
+  const isUserApproved = auth && auth.currentUser && 
+    (!pendingModal || pendingModal.style.display !== "flex") &&
+    (!profileModal || profileModal.style.display !== "flex");
+
+  if (isUserApproved) {
+    if (mainSwitcher) mainSwitcher.style.display = "flex";
+
+    if (activeModule === "pool") {
+      if (mainDash) mainDash.style.display = "";
+      if (agriDash) agriDash.style.display = "none";
+      if (mobileTabs) mobileTabs.style.display = "";
+      const mtabInputs = document.getElementById("mtab_inputs");
+      if (mtabInputs && !mtabInputs.classList.contains("active")) {
+          mtabInputs.click();
+      }
+      
+      if (btnPool) {
+        btnPool.style.background = "#2563eb";
+        btnPool.style.color = "white";
+        btnPool.style.boxShadow = "0 4px 12px rgba(37, 99, 235, 0.25)";
+      }
+      if (btnAgri) {
+        btnAgri.style.background = "#f8fafc";
+        btnAgri.style.color = "#475569";
+        btnAgri.style.boxShadow = "none";
+      }
+    } else {
+      if (mainDash) mainDash.style.display = "none";
+      if (agriDash) agriDash.style.display = "flex";
+      if (mobileTabs) mobileTabs.style.display = "";
+      const mtabInputs = document.getElementById("mtab_inputs");
+      if (mtabInputs && !mtabInputs.classList.contains("active")) {
+          mtabInputs.click();
+      }
+      
+      if (btnPool) {
+        btnPool.style.background = "#f8fafc";
+        btnPool.style.color = "#475569";
+        btnPool.style.boxShadow = "none";
+      }
+      if (btnAgri) {
+        btnAgri.style.background = "#2563eb";
+        btnAgri.style.color = "white";
+        btnAgri.style.boxShadow = "0 4px 12px rgba(37, 99, 235, 0.25)";
+      }
+      if (typeof window.renderAgriDashboard === "function") {
+        window.renderAgriDashboard();
+      }
+    }
+  } else {
+    if (mainSwitcher) mainSwitcher.style.display = "none";
+    if (mainDash) mainDash.style.display = "none";
+    if (agriDash) agriDash.style.display = "none";
+    if (mobileTabs) mobileTabs.style.display = "none";
+  }
+};
+
+window.updateDashboardVisibility = updateDashboardVisibility;
+
+const initModuleSwitcher = () => {
+  const btnPool = document.getElementById("btn_module_pool");
+  const btnAgri = document.getElementById("btn_module_agri");
+
+  if (btnPool) {
+    btnPool.addEventListener("click", () => {
+      activeModule = "pool";
+      localStorage.setItem("active_module", "pool");
+      updateDashboardVisibility();
+    });
+  }
+
+  if (btnAgri) {
+    btnAgri.addEventListener("click", () => {
+      activeModule = "agri";
+      localStorage.setItem("active_module", "agri");
+      updateDashboardVisibility();
+    });
+  }
+
+  updateDashboardVisibility();
+};
+
+// =========================================================================
+// MODULE 2: NÔNG SẢN VIỆT NAM (AGRICULTURAL PRODUCT PROGRAM)
+// =========================================================================
+
+// Initialize global state for Nông Sản module
+window.agriState = {
+  selectedProductId: "custom",
+  customProduct: {
+    name: "Đường mạch nha",
+    marketPrice: 100000,
+    promoPrice: 90000,
+    bulkBuy: 10,
+    bulkGift: 1
+  },
+  qty: 10,
+  option: "2",
+  resaleUnitPrice: 250000,
+  resaleFeePercent: 5,
+  resaleSellGift: true,
+  rank: "nv",
+  personalSales: 0,
+  f1Sales: 0,
+  otherGroupSales: 0,
+  f1Network: [] // array of { name: string, sales: number } (kept for schema compatibility)
+};
+
+const agriState = window.agriState;
+
+window.hasAgriFirstLoadPinned = false;
+window.agriProducts = [];
+// Alias to maintain code compatibility
+const agriProducts = window.agriProducts;
+
+// Synchronize state with Firebase Firestore
+window.saveAgriStateToFirebase = async () => {
+  if (typeof auth !== 'undefined' && auth.currentUser) {
+    const agriRef = doc(db, "agri_states", auth.currentUser.uid);
+    try {
+      await setDoc(agriRef, {
+        selectedProductId: agriState.selectedProductId,
+        customProduct: agriState.customProduct,
+        qty: agriState.qty,
+        option: agriState.option,
+        resaleUnitPrice: agriState.resaleUnitPrice,
+        resaleFeePercent: agriState.resaleFeePercent,
+        resaleSellGift: agriState.resaleSellGift,
+        rank: agriState.rank,
+        personalSales: agriState.personalSales,
+        f1Sales: agriState.f1Sales || 0,
+        otherGroupSales: agriState.otherGroupSales || 0,
+        f1Network: agriState.f1Network || []
+      }, { merge: true });
+    } catch (err) {
+      console.error("Error saving Nông Sản state:", err);
+    }
+  }
+};
+
+const updateAgriSubordinateVisibility = () => {
+  const selectRank = document.getElementById("calc_agri_rank");
+  if (!selectRank) return;
+  const rank = selectRank.value;
+  const gdChk = document.getElementById("calc_agri_chk_gd");
+  const qlChk = document.getElementById("calc_agri_chk_ql");
+  const nvChk = document.getElementById("calc_agri_chk_nv");
+
+  const subGd = document.getElementById("calc_agri_sub_gd");
+  const subQl = document.getElementById("calc_agri_sub_ql");
+  const subNv = document.getElementById("calc_agri_sub_nv");
+
+  if (rank === "tgd") {
+    if (gdChk) gdChk.style.display = "flex";
+    if (qlChk) qlChk.style.display = "flex";
+    if (nvChk) nvChk.style.display = "flex";
+  } else if (rank === "gd") {
+    if (gdChk) gdChk.style.display = "none";
+    if (subGd) subGd.checked = false;
+    if (qlChk) qlChk.style.display = "flex";
+    if (nvChk) nvChk.style.display = "flex";
+  } else if (rank === "ql") {
+    if (gdChk) gdChk.style.display = "none";
+    if (subGd) subGd.checked = false;
+    if (qlChk) qlChk.style.display = "none";
+    if (subQl) subQl.checked = false;
+    if (nvChk) nvChk.style.display = "flex";
+  } else {
+    if (gdChk) gdChk.style.display = "none";
+    if (subGd) subGd.checked = false;
+    if (qlChk) qlChk.style.display = "none";
+    if (subQl) subQl.checked = false;
+    if (nvChk) nvChk.style.display = "none";
+    if (subNv) subNv.checked = false;
+  }
+};
+
+window.renderAgriDashboard = () => {
+  const selectProduct = document.getElementById("calc_agri_product");
+  const inputMarketPrice = document.getElementById("calc_agri_market_price");
+  const inputPromoPrice = document.getElementById("calc_agri_promo_price");
+  const inputBulkBuy = document.getElementById("calc_agri_bulk_buy");
+  const inputBulkGift = document.getElementById("calc_agri_bulk_gift");
+  const inputQty = document.getElementById("calc_agri_qty");
+  const selectOption = document.getElementById("calc_agri_option");
+  const inputResaleUnitPrice = document.getElementById("calc_resale_unit_price");
+  const inputResaleFeePercent = document.getElementById("calc_resale_fee_percent");
+  const checkResaleSellGift = document.getElementById("calc_resale_sell_gift");
+  
+  const selectRank = document.getElementById("calc_agri_rank");
+  
+  // Elements for product outputs
+  const outMarketTotal = document.getElementById("out_market_total");
+  const outPromoTotal = document.getElementById("out_promo_total");
+  const outPayLixi = document.getElementById("out_pay_lixi");
+  const outPayCash = document.getElementById("out_pay_cash");
+  const outQtyReal = document.getElementById("out_qty_real");
+  const outQtyBonus = document.getElementById("out_qty_bonus");
+  const outQtyTotal = document.getElementById("out_qty_total");
+  const outEffectiveUnitCost = document.getElementById("out_effective_unit_cost");
+  const outPointsEarned = document.getElementById("out_points_earned");
+
+  // Elements for resale outputs
+  const outResaleRevenue = document.getElementById("out_resale_revenue");
+  const outResaleFee = document.getElementById("out_resale_fee");
+  const outResaleNetReceived = document.getElementById("out_resale_net_received");
+  const outResaleNetProfitCash = document.getElementById("out_resale_net_profit_cash");
+  const outResaleNetProfitTotal = document.getElementById("out_resale_net_profit_total");
+  const outResaleRoi = document.getElementById("out_resale_roi");
+
+  // Elements for Overview cards
+  const overviewCashSpent = document.getElementById("agri_overview_cash_spent");
+  const overviewMarketValue = document.getElementById("agri_overview_market_value");
+  const overviewCommission = document.getElementById("agri_overview_commission");
+  const overviewNetProfit = document.getElementById("agri_overview_net_profit");
+
+  if (!selectProduct) return;
+
+  const prodId = agriState.selectedProductId;
+  if (selectProduct.value !== prodId) {
+    selectProduct.value = prodId;
+  }
+
+  const p = agriProducts.find(x => x.id === prodId);
+  const isCustom = prodId === "custom";
+
+  // Tự động gán giá bán lại kỳ vọng bằng giá thị trường
+  const marketVal = (!isCustom && p) ? p.marketPrice : agriState.customProduct.marketPrice;
+  agriState.resaleUnitPrice = marketVal;
+
+  // Enable/disable inputs based on isCustom
+  if (isCustom) {
+    if (inputMarketPrice) {
+      inputMarketPrice.removeAttribute("readonly");
+      inputMarketPrice.style.background = "white";
+    }
+    if (inputPromoPrice) {
+      inputPromoPrice.removeAttribute("readonly");
+      inputPromoPrice.style.background = "white";
+    }
+  } else {
+    if (inputMarketPrice) {
+      inputMarketPrice.setAttribute("readonly", "true");
+      inputMarketPrice.style.background = "#f8fafc";
+    }
+    if (inputPromoPrice) {
+      inputPromoPrice.setAttribute("readonly", "true");
+      inputPromoPrice.style.background = "#f8fafc";
+    }
+  }
+
+  // Populate inputs based on current product (or custom)
+  if (!isCustom && p) {
+    const formattedMarketPrice = new Intl.NumberFormat("vi-VN").format(p.marketPrice);
+    if (inputMarketPrice && inputMarketPrice.value.replace(/\D/g, "") !== String(p.marketPrice)) {
+      inputMarketPrice.value = formattedMarketPrice;
+    }
+    const formattedPromoPrice = new Intl.NumberFormat("vi-VN").format(p.promoPrice);
+    if (inputPromoPrice && inputPromoPrice.value.replace(/\D/g, "") !== String(p.promoPrice)) {
+      inputPromoPrice.value = formattedPromoPrice;
+    }
+    if (inputBulkBuy && Number(inputBulkBuy.value) !== p.bulkPromo.buy) inputBulkBuy.value = p.bulkPromo.buy;
+    if (inputBulkGift && Number(inputBulkGift.value) !== p.bulkPromo.gift) inputBulkGift.value = p.bulkPromo.gift;
+  } else if (isCustom) {
+    const formattedMarketPrice = new Intl.NumberFormat("vi-VN").format(agriState.customProduct.marketPrice);
+    if (inputMarketPrice && inputMarketPrice.value.replace(/\D/g, "") !== String(agriState.customProduct.marketPrice)) {
+      inputMarketPrice.value = formattedMarketPrice;
+    }
+    const formattedPromoPrice = new Intl.NumberFormat("vi-VN").format(agriState.customProduct.promoPrice);
+    if (inputPromoPrice && inputPromoPrice.value.replace(/\D/g, "") !== String(agriState.customProduct.promoPrice)) {
+      inputPromoPrice.value = formattedPromoPrice;
+    }
+    if (inputBulkBuy && Number(inputBulkBuy.value) !== agriState.customProduct.bulkBuy) inputBulkBuy.value = agriState.customProduct.bulkBuy;
+    if (inputBulkGift && Number(inputBulkGift.value) !== agriState.customProduct.bulkGift) inputBulkGift.value = agriState.customProduct.bulkGift;
+  }
+
+  // Sync general state properties to input fields
+  if (inputQty && Number(inputQty.value) !== agriState.qty) inputQty.value = agriState.qty;
+  if (selectOption && selectOption.value !== agriState.option) selectOption.value = agriState.option;
+  if (selectRank && selectRank.value !== agriState.rank) selectRank.value = agriState.rank;
+
+  const resaleInputsGroup = document.getElementById("calc_resale_inputs_group");
+  const resaleResultsGroup = document.getElementById("out_resale_results_group");
+  const isOption2 = agriState.option === "2";
+
+  if (isOption2) {
+    if (resaleInputsGroup) resaleInputsGroup.style.display = "flex";
+    if (resaleResultsGroup) resaleResultsGroup.style.display = "flex";
+    
+    const formattedResalePrice = new Intl.NumberFormat("vi-VN").format(agriState.resaleUnitPrice);
+    if (inputResaleUnitPrice && inputResaleUnitPrice.value.replace(/\D/g, "") !== String(agriState.resaleUnitPrice)) {
+      inputResaleUnitPrice.value = formattedResalePrice;
+    }
+    if (inputResaleUnitPrice) {
+      inputResaleUnitPrice.setAttribute("readonly", "true");
+      inputResaleUnitPrice.style.background = "#f8fafc";
+    }
+    if (inputResaleFeePercent && Number(inputResaleFeePercent.value) !== agriState.resaleFeePercent) {
+      inputResaleFeePercent.value = agriState.resaleFeePercent;
+    }
+    if (checkResaleSellGift && checkResaleSellGift.checked !== agriState.resaleSellGift) {
+      checkResaleSellGift.checked = agriState.resaleSellGift;
+    }
+  } else {
+    if (resaleInputsGroup) resaleInputsGroup.style.display = "none";
+    if (resaleResultsGroup) resaleResultsGroup.style.display = "none";
+  }
+
+  const marketPrice = isCustom ? agriState.customProduct.marketPrice : (p ? p.marketPrice : 0);
+  const promoPrice = isCustom ? agriState.customProduct.promoPrice : (p ? p.promoPrice : 0);
+  const bulkBuy = isCustom ? agriState.customProduct.bulkBuy : (p ? p.bulkPromo.buy : 10);
+  const bulkGift = isCustom ? agriState.customProduct.bulkGift : (p ? p.bulkPromo.gift : 1);
+  const qty = agriState.qty;
+
+  const totalMarketVal = marketPrice * qty;
+  const totalPromoVal = promoPrice * qty;
+  
+  const payLixiVal = totalPromoVal * 0.03;
+  const payCashVal = totalPromoVal * 0.97;
+  const pointsEarned = totalPromoVal * 0.01;
+
+  const bonusGifts = 0; // Hủy bỏ chức năng thưởng tặng thêm/mua sỉ đối với nông sản
+  const totalQtyReceived = qty + bonusGifts;
+  const effectiveUnitCost = totalQtyReceived > 0 ? (payCashVal / totalQtyReceived) : 0;
+
+  if (outMarketTotal) outMarketTotal.innerText = formatVND(totalMarketVal);
+  if (outPromoTotal) outPromoTotal.innerText = formatVND(totalPromoVal);
+  if (outPayLixi) outPayLixi.innerText = `${new Intl.NumberFormat("vi-VN").format(payLixiVal)} Lì xì (3%)`;
+  if (outPayCash) outPayCash.innerText = `${formatVND(payCashVal)} (97%)`;
+  if (outQtyReal) outQtyReal.innerText = `${qty}`;
+  if (outQtyBonus) outQtyBonus.innerText = `+${bonusGifts} (thưởng sỉ)`;
+  if (outQtyTotal) outQtyTotal.innerText = `${totalQtyReceived}`;
+  if (outEffectiveUnitCost) outEffectiveUnitCost.innerText = `${formatVND(effectiveUnitCost)} / sản phẩm`;
+  if (outPointsEarned) outPointsEarned.innerText = `+${new Intl.NumberFormat("vi-VN").format(pointsEarned)} điểm`;
+
+  let goodsVal = totalMarketVal;
+  let netGoodsProfit = totalMarketVal - payCashVal;
+
+  if (isOption2) {
+    const resalePrice = agriState.resaleUnitPrice;
+    const feePercent = 0; // Nông sản không có phí giao dịch
+    const sellGift = false; // Huỷ bỏ chức năng bán cả số lượng sỉ thưởng tặng thêm
+
+    const unitsToSell = qty; // Chỉ bán số lượng gốc, không bao gồm số lượng sỉ thưởng tặng thêm
+    const grossRevenue = resalePrice * unitsToSell;
+    const feeVal = 0;
+    const netCashReceived = grossRevenue;
+
+    const cashProfit = netCashReceived - payCashVal;
+    const totalProfit = cashProfit + pointsEarned - payLixiVal;
+    const roiPercent = payCashVal > 0 ? (cashProfit / payCashVal) * 100 : 0;
+
+    goodsVal = netCashReceived;
+    netGoodsProfit = cashProfit;
+
+    if (outResaleRevenue) outResaleRevenue.innerText = formatVND(grossRevenue);
+    if (outResaleFee) outResaleFee.innerText = `0 đ (0%)`;
+    if (outResaleNetReceived) outResaleNetReceived.innerText = formatVND(netCashReceived);
+    
+    if (outResaleNetProfitCash) {
+      outResaleNetProfitCash.innerText = formatVND(cashProfit);
+      outResaleNetProfitCash.style.color = cashProfit >= 0 ? "#047857" : "#b91c1c";
+    }
+    if (outResaleNetProfitTotal) {
+      outResaleNetProfitTotal.innerText = `${formatVND(totalProfit)} (Điểm: +${new Intl.NumberFormat("vi-VN").format(pointsEarned)}đ, Lì xì: -${new Intl.NumberFormat("vi-VN").format(payLixiVal)}đ)`;
+      outResaleNetProfitTotal.style.color = totalProfit >= 0 ? "#059669" : "#b91c1c";
+    }
+    if (outResaleRoi) {
+      outResaleRoi.innerText = `${roiPercent.toFixed(2)}%`;
+      outResaleRoi.style.color = roiPercent >= 0 ? "#10b981" : "#ef4444";
+    }
+  }
+
+  // Reworked commission calculation for Nông sản
+  const rank = agriState.rank;
+  const agri_max_nv = parseFloat(document.getElementById("a_agri_max_nv")?.value) || 0;
+  const agri_max_ql = parseFloat(document.getElementById("a_agri_max_ql")?.value) || 0;
+  const agri_max_gd = parseFloat(document.getElementById("a_agri_max_gd")?.value) || 0;
+  const agri_max_tgd = parseFloat(document.getElementById("a_agri_max_tgd")?.value) || 0;
+  const max_direct = parseFloat(document.getElementById("a_agri_max_direct")?.value) || 0;
+  const max_indirect = parseFloat(document.getElementById("a_agri_max_indirect")?.value) || 0;
+
+  const role_name_nv = document.getElementById("role_name_nv")?.value || "Nhân viên";
+  const role_name_ql = document.getElementById("role_name_ql")?.value || "Quản lý";
+  const role_name_gd = document.getElementById("role_name_gd")?.value || "Giám đốc";
+  const role_name_tgd = document.getElementById("role_name_tgd")?.value || "Tổng Giám đốc";
+
+  // Base calculation amount (Calculated directly on promotional price)
+  const baseAmount = totalPromoVal;
+
+  // Determine active rank index to know which levels to include:
+  // nv: NV
+  // ql: NV, QL
+  // gd: NV, QL, GD
+  // tgd: NV, QL, GD, TGD
+  let rankTarget = 0; // 0 = none, 4 = nv, 5 = ql, 6 = gd, 7 = tgd
+  if (rank === "nv") rankTarget = 4;
+  else if (rank === "ql") rankTarget = 5;
+  else if (rank === "gd") rankTarget = 6;
+  else if (rank === "tgd") rankTarget = 7;
+
+  let commissionLines = [];
+  let itemIndex = 1;
+
+  // 1. Direct commission
+  const directCommissionVal = baseAmount * (max_direct / 100);
+  if (max_direct > 0) {
+    commissionLines.push({
+      label: `${itemIndex++}. Hoa hồng trực tiếp (F0) (${max_direct}%):`,
+      val: directCommissionVal
+    });
+  }
+
+  // 2. Indirect commission
+  const indirectCommissionVal = baseAmount * (max_indirect / 100);
+  if (max_indirect > 0) {
+    commissionLines.push({
+      label: `${itemIndex++}. Hoa hồng gián tiếp (F1) (${max_indirect}%):`,
+      val: indirectCommissionVal
+    });
+  }
+
+  // 3. NV rank-based commission
+  if (rankTarget >= 4) {
+    const nv_rate = agri_max_nv;
+    if (nv_rate > 0) {
+      commissionLines.push({
+        label: `${itemIndex++}. HH ${role_name_nv} (${nv_rate}%):`,
+        val: baseAmount * (nv_rate / 100)
+      });
+    }
+  }
+
+  // 4. QL rank-based commission
+  if (rankTarget >= 5) {
+    const ql_rate = Math.max(0, agri_max_ql - agri_max_nv);
+    if (ql_rate > 0) {
+      commissionLines.push({
+        label: `${itemIndex++}. HH ${role_name_ql} (${ql_rate}%):`,
+        val: baseAmount * (ql_rate / 100)
+      });
+    }
+  }
+
+  // 5. GD rank-based commission
+  if (rankTarget >= 6) {
+    const gd_rate = Math.max(0, agri_max_gd - agri_max_ql);
+    if (gd_rate > 0) {
+      commissionLines.push({
+        label: `${itemIndex++}. HH ${role_name_gd} (${gd_rate}%):`,
+        val: baseAmount * (gd_rate / 100)
+      });
+    }
+  }
+
+  // 6. TGD rank-based commission
+  if (rankTarget >= 7) {
+    const tgd_rate = Math.max(0, agri_max_tgd - agri_max_gd);
+    if (tgd_rate > 0) {
+      commissionLines.push({
+        label: `${itemIndex++}. HH ${role_name_tgd} (${tgd_rate}%):`,
+        val: baseAmount * (tgd_rate / 100)
+      });
+    }
+  }
+
+  // Sum up all active commissions
+  const totalAllCommissions = commissionLines.reduce((sum, item) => sum + item.val, 0);
+
+  // Render the list dynamically
+  const commissionsListContainer = document.getElementById("out_agri_commissions_list");
+  if (commissionsListContainer) {
+    if (commissionLines.length === 0) {
+      commissionsListContainer.innerHTML = `
+        <div style="text-align: center; color: #6b7280; font-style: italic; padding: 10px 0;">
+          Không có hoa hồng phát sinh
+        </div>
+      `;
+    } else {
+      commissionsListContainer.innerHTML = commissionLines.map((line, idx) => {
+        const isLast = idx === commissionLines.length - 1;
+        const borderStyle = isLast ? "border-bottom: 1px dashed #ddd6fe; padding-bottom: 8px;" : "";
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; ${borderStyle}">
+              <span style="color: #4c1d95; font-weight: 500;">${line.label}</span>
+              <span style="font-weight: 700; color: black;">${formatVND(line.val)}</span>
+          </div>
+        `;
+      }).join("");
+    }
+  }
+
+  const dDirect = document.getElementById("out_agri_direct_commission");
+  const dIndirect = document.getElementById("out_agri_indirect_commission");
+  const dRankLabel = document.getElementById("out_agri_rank_commission_label");
+  const dRankComm = document.getElementById("out_agri_rank_commission");
+  const dTotalComm = document.getElementById("out_agri_total_commission");
+
+  if (dDirect) dDirect.innerText = formatVND(directCommissionVal);
+  if (dIndirect) dIndirect.innerText = formatVND(indirectCommissionVal);
+  if (dRankLabel) dRankLabel.innerText = "Chức danh";
+  if (dRankComm) dRankComm.innerText = formatVND(0);
+  if (dTotalComm) dTotalComm.innerText = formatVND(totalAllCommissions);
+
+  // Render the Overview cards
+  const finalNetProfitVal = netGoodsProfit + totalAllCommissions + pointsEarned - payLixiVal;
+
+  if (overviewCashSpent) overviewCashSpent.innerText = formatVND(payCashVal);
+  if (overviewMarketValue) overviewMarketValue.innerText = formatVND(goodsVal);
+  if (overviewCommission) overviewCommission.innerText = formatVND(totalAllCommissions);
+  if (overviewNetProfit) {
+    overviewNetProfit.innerText = formatVND(finalNetProfitVal);
+    overviewNetProfit.style.color = finalNetProfitVal >= 0 ? "#16a34a" : "#dc2626";
+  }
+};
+
+// Initialize event listeners for Agricultural Calculator inputs
+const initAgriCalculator = () => {
+  const selectProduct = document.getElementById("calc_agri_product");
+  const inputMarketPrice = document.getElementById("calc_agri_market_price");
+  const inputPromoPrice = document.getElementById("calc_agri_promo_price");
+  const inputBulkBuy = document.getElementById("calc_agri_bulk_buy");
+  const inputBulkGift = document.getElementById("calc_agri_bulk_gift");
+  const inputQty = document.getElementById("calc_agri_qty");
+  const selectOption = document.getElementById("calc_agri_option");
+  const inputResaleUnitPrice = document.getElementById("calc_resale_unit_price");
+  const inputResaleFeePercent = document.getElementById("calc_resale_fee_percent");
+  const checkResaleSellGift = document.getElementById("calc_resale_sell_gift");
+  const selectRank = document.getElementById("calc_agri_rank");
+
+  const subGd = document.getElementById("calc_agri_sub_gd");
+  const subQl = document.getElementById("calc_agri_sub_ql");
+  const subNv = document.getElementById("calc_agri_sub_nv");
+
+  if (!selectProduct) return;
+
+  // Handle product selection change
+  selectProduct.addEventListener("change", (e) => {
+    agriState.selectedProductId = e.target.value;
+    const p = agriProducts.find(x => x.id === e.target.value);
+    if (p) {
+      agriState.resaleUnitPrice = p.marketPrice; // default resale price
+    } else if (e.target.value === "custom") {
+      agriState.resaleUnitPrice = agriState.customProduct.marketPrice;
+    }
+    window.renderAgriDashboard();
+  });
+
+  // Helper to attach input parsing
+  const bindNumericField = (element, callback) => {
+    element.addEventListener("input", (e) => {
+      let rawVal = e.target.value.replace(/\D/g, "");
+      if (rawVal === "") rawVal = "0";
+      const numVal = parseInt(rawVal, 10);
+      callback(numVal);
+      // Format with thousands separator
+      e.target.value = new Intl.NumberFormat("vi-VN").format(numVal);
+      window.renderAgriDashboard();
+    });
+  };
+
+  if (inputMarketPrice) {
+    bindNumericField(inputMarketPrice, (val) => {
+      if (agriState.selectedProductId === "custom") {
+        agriState.customProduct.marketPrice = val;
+      }
+    });
+  }
+
+  if (inputPromoPrice) {
+    bindNumericField(inputPromoPrice, (val) => {
+      if (agriState.selectedProductId === "custom") {
+        agriState.customProduct.promoPrice = val;
+      }
+    });
+  }
+
+  if (inputResaleUnitPrice) {
+    bindNumericField(inputResaleUnitPrice, (val) => {
+      agriState.resaleUnitPrice = val;
+    });
+  }
+
+  if (subGd) subGd.addEventListener("change", () => window.renderAgriDashboard());
+  if (subQl) subQl.addEventListener("change", () => window.renderAgriDashboard());
+  if (subNv) subNv.addEventListener("change", () => window.renderAgriDashboard());
+
+  if (inputBulkBuy) {
+    inputBulkBuy.addEventListener("input", (e) => {
+      const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+      if (agriState.selectedProductId === "custom") {
+        agriState.customProduct.bulkBuy = val;
+      }
+      window.renderAgriDashboard();
+    });
+  }
+
+  if (inputBulkGift) {
+    inputBulkGift.addEventListener("input", (e) => {
+      const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+      if (agriState.selectedProductId === "custom") {
+        agriState.customProduct.bulkGift = val;
+      }
+      window.renderAgriDashboard();
+    });
+  }
+
+  if (inputQty) {
+    inputQty.addEventListener("input", (e) => {
+      agriState.qty = Math.max(1, parseInt(e.target.value, 10) || 1);
+      window.renderAgriDashboard();
+    });
+  }
+
+  if (selectOption) {
+    selectOption.addEventListener("change", (e) => {
+      agriState.option = e.target.value;
+      window.renderAgriDashboard();
+    });
+  }
+
+  if (inputResaleFeePercent) {
+    inputResaleFeePercent.addEventListener("input", (e) => {
+      agriState.resaleFeePercent = Math.max(0, parseInt(e.target.value, 10) || 0);
+      window.renderAgriDashboard();
+    });
+  }
+
+  if (checkResaleSellGift) {
+    checkResaleSellGift.addEventListener("change", (e) => {
+      agriState.resaleSellGift = e.target.checked;
+      window.renderAgriDashboard();
+    });
+  }
+
+  if (selectRank) {
+    selectRank.addEventListener("change", (e) => {
+      agriState.rank = e.target.value;
+      window.renderAgriDashboard();
+    });
+  }
+};
+
+// Mount agricultural module calculator
+window.addEventListener("load", () => {
+  initModuleSwitcher();
+  initAgriCalculator();
+  
+  setTimeout(() => {
+    if (typeof window.updateDashboardVisibility === "function") {
+      window.updateDashboardVisibility();
+    }
+  }, 1000);
 });

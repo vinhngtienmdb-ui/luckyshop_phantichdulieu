@@ -69,6 +69,16 @@
             <button onclick="this.parentElement.style.display='none'" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #991b1b; font-size: 1.2rem; cursor: pointer; font-weight: bold;">&times;</button>
         </div>
 
+        <!-- Main Module Switcher -->
+        <div id="main_module_switcher" style="background: white; border: 1px solid #cbd5e1; border-radius: 14px; padding: 6px; display: none; gap: 8px; margin: 15px 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%;">
+            <button id="btn_module_pool" style="flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.25s; background: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+                📊 <span class="hide-mobile">Gom Nhóm Lì Xì (Gom Nhóm)</span><span class="show-mobile">Gom Nhóm</span>
+            </button>
+            <button id="btn_module_agri" style="flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.25s; background: #f8fafc; color: #475569;">
+                🌱 <span class="hide-mobile">Nông Sản Việt Nam (Module Mới)</span><span class="show-mobile">Nông Sản</span>
+            </button>
+        </div>
+
         <!-- Mobile Tabs -->
         <div class="mobile-tabs-container">
             <button class="mobile-tab active" id="mtab_inputs">⚙️ Nhập Liệu</button>
@@ -293,7 +303,7 @@
                     <p class="subtitle-note">Hệ thống sẽ tự tính hoa hồng dựa trên vai trò của bạn</p>
                     <div class="input-list">
                         <!-- Nguồn đơn hàng removed -->
-                        <div class="input-group mt-2">
+                        <div class="input-group mt-2" style="display: none;">
                             <label style="font-weight: 500; margin-bottom: 5px; display: block; color: #555;">Cấp bậc của BẠN</label>
                             <select id="u_rank" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 0.95rem; background-color: #fff; color: #333; outline: none;">
                                 <option value="tgd" id="opt_tgd">Tổng Giám đốc</option>
@@ -447,6 +457,249 @@
                     </div>
                 </div>
             </section>
+
+        </main>
+
+        <!-- Module 2: Nông Sản Việt Nam Calculator -->
+        <main class="dashboard-grid mobile-tab-inputs" id="agri_dashboard" style="display: none; flex-direction: column; gap: 20px; width: 100%; margin-top: 15px;">
+            
+            <!-- Branding Banner -->
+            <div style="background: linear-gradient(135deg, #10b981 0%, #047857 100%); padding: 20px; border-radius: 12px; color: white; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+                <h2 style="font-size: 1.5rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">🌱 CÔNG CỤ TÍNH TOÁN NÔNG SẢN VIỆT NAM</h2>
+                <p style="font-size: 0.9rem; opacity: 0.95; margin: 0; font-weight: 500;">Bảng tính mô phỏng cơ chế đặt mua sỉ lẻ, chuyển nhượng quyền nhận nông sản và hoạch định hoa hồng đại lý.</p>
+            </div>
+
+            <!-- Dashboard Overview Cards -->
+            <div class="card-b" style="background: white; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%;">
+                <h3 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; display: flex; align-items: center; gap: 8px;">📈 PHÂN TÍCH HIỆU QUẢ HOẠCH ĐỊNH</h3>
+                <div class="overview-cards">
+                    <!-- Card 1: Tổng chi phí tiền mặt -->
+                    <div class="dash-card" style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 15px; display: flex; align-items: center; gap: 12px;">
+                        <div class="icon" style="font-size: 2rem;">💸</div>
+                        <div>
+                            <span style="font-size: 0.78rem; color: #991b1b; font-weight: 700; display: block;">Tổng Chi Tiền Mặt</span>
+                            <strong id="agri_overview_cash_spent" class="value" style="font-size: 1.25rem; color: #991b1b; font-weight: 800; display: block;">0 đ</strong>
+                            <span class="note" style="font-size: 0.7rem; color: #7f1d1d; opacity: 0.8;">97% thanh toán tiền mặt</span>
+                        </div>
+                    </div>
+                    <!-- Card 2: Giá trị nhận thực tế -->
+                    <div class="dash-card" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 15px; display: flex; align-items: center; gap: 12px;">
+                        <div class="icon" style="font-size: 2rem;">📦</div>
+                        <div>
+                            <span style="font-size: 0.78rem; color: #065f46; font-weight: 700; display: block;">Giá Trị Nhận</span>
+                            <strong id="agri_overview_market_value" class="value" style="font-size: 1.25rem; color: #065f46; font-weight: 800; display: block;">0 đ</strong>
+                            <span class="note" style="font-size: 0.7rem; color: #064e3b; opacity: 0.8;">Hàng nhận thực tế quy đổi</span>
+                        </div>
+                    </div>
+                    <!-- Card 3: Tổng hoa hồng phát sinh -->
+                    <div class="dash-card" style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 15px; display: flex; align-items: center; gap: 12px;">
+                        <div class="icon" style="font-size: 2rem;">🎁</div>
+                        <div>
+                            <span style="font-size: 0.78rem; color: #6b21a8; font-weight: 700; display: block;">Tổng Hoa Hồng Nhận</span>
+                            <strong id="agri_overview_commission" class="value" style="font-size: 1.25rem; color: #6b21a8; font-weight: 800; display: block;">0 đ</strong>
+                            <span class="note" style="font-size: 0.7rem; color: #581c87; opacity: 0.8;">Từ doanh số nhóm & F1</span>
+                        </div>
+                    </div>
+                    <!-- Card 4: Hiệu quả ròng quy đổi -->
+                    <div class="dash-card" style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 15px; display: flex; align-items: center; gap: 12px;">
+                        <div class="icon" style="font-size: 2rem;">⚖️</div>
+                        <div>
+                            <span style="font-size: 0.78rem; color: #92400e; font-weight: 700; display: block;">Hiệu Quả Ròng Dự Kiến</span>
+                            <strong id="agri_overview_net_profit" class="value" style="font-size: 1.25rem; color: #92400e; font-weight: 800; display: block;">0 đ</strong>
+                            <span class="note" style="font-size: 0.7rem; color: #78350f; opacity: 0.8;">Lợi nhuận ròng + Hoa hồng</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Columns Calculator Grid -->
+            <div class="agri-grid">
+                
+                <!-- COLUMN 1: INPUTS & PARAMETERS -->
+                <div class="card card-a" style="display: flex; flex-direction: column; gap: 16px; border-top: 4px solid #10b981; padding: 20px; background: #ffffff; box-shadow: var(--shadow-md); border-radius: 12px;">
+                    <h3 style="font-size: 1.15rem; font-weight: 800; color: #1e293b; margin: 0; border-bottom: 2px solid #ecfdf5; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        ⚙️ THÔNG SỐ & CẤU HÌNH ĐẦU VÀO
+                    </h3>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 14px; font-size: 0.85rem;">
+                        <!-- Group 1: Chọn nông sản -->
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                            <span style="font-weight: 700; color: #334155; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">📦 Thông Tin Sản Phẩm</span>
+                            <div>
+                                <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Sản Phẩm Nông Sản:</label>
+                                <select id="calc_agri_product" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; background: white; color: black; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#10b981'">
+                                    <option value="custom">-- Nhập sản phẩm tự chọn --</option>
+                                </select>
+                            </div>
+
+                            <div class="agri-input-grid" style="margin-top: 4px;">
+                                <div>
+                                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Giá Thị Trường (gốc):</label>
+                                    <input type="text" id="calc_agri_market_price" value="250,000" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; background: white; color: black; outline: none;" />
+                                </div>
+                                <div>
+                                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Giá Ưu Đãi Chương Trình:</label>
+                                    <input type="text" id="calc_agri_promo_price" value="225,000" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; color: #047857; background: white; outline: none;" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden Bulk Buy (for compatibility) -->
+                        <div style="display: none;">
+                            <input type="number" id="calc_agri_bulk_buy" value="10" />
+                            <span id="calc_agri_bulk_unit_1"></span>
+                            <input type="number" id="calc_agri_bulk_gift" value="1" />
+                            <span id="calc_agri_bulk_unit_2"></span>
+                        </div>
+
+                        <!-- Group 2: Số lượng & Phương án -->
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                            <span style="font-weight: 700; color: #334155; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">⚖️ Số Lượng & Phương Án Nhận</span>
+                            <div class="agri-input-grid">
+                                <div>
+                                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Số Lượng Đặt Mua:</label>
+                                    <input type="number" id="calc_agri_qty" value="10" min="1" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; background: white; color: black; outline: none;" />
+                                </div>
+                                <div>
+                                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 4px;">Phương Án Quyền Lợi:</label>
+                                    <select id="calc_agri_option" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; background: white; color: black; outline: none;">
+                                        <option value="1">Phương án 1: Nhận hàng trực tiếp</option>
+                                        <option value="2" selected>Phương án 2: Chuyển nhượng bảo lưu</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Resale Price setting (Only shown when Option 2 is selected) -->
+                            <div id="calc_resale_inputs_group" style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                                <span style="font-weight: 700; color: #92400e; display: block; font-size: 0.8rem; text-transform: uppercase;">🔄 Chuyển nhượng kỳ vọng</span>
+                                <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                                    <div>
+                                        <label style="font-weight: 600; color: #b45309; display: block; margin-bottom: 2px; font-size: 0.78rem;">Giá Bán Lại Kỳ Vọng:</label>
+                                        <input type="text" id="calc_resale_unit_price" value="250,000" style="width: 100%; padding: 6px 10px; border: 1px solid #fcd34d; border-radius: 4px; font-weight: 700; background: #f8fafc; color: #92400e;" readonly />
+                                        <span style="font-size: 0.72rem; color: #b45309; margin-top: 2px; display: block;">* Tự động đồng bộ bằng Giá thị trường gốc</span>
+                                    </div>
+                                    <div style="display: none;">
+                                        <input type="number" id="calc_resale_fee_percent" value="0" />
+                                    </div>
+                                </div>
+                                <label style="display: none;">
+                                    <input type="checkbox" id="calc_resale_sell_gift" />
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Hidden Rank selector for compatibility -->
+                        <div style="display: none;">
+                            <select id="calc_agri_rank">
+                                <option value="tgd">Tổng Giám đốc</option>
+                                <option value="gd" selected>Giám đốc</option>
+                                <option value="ql">Quản lý</option>
+                                <option value="nv">Nhân viên</option>
+                                <option value="kh">Khách hàng (0%)</option>
+                            </select>
+                            <input type="checkbox" id="calc_agri_sub_gd" />
+                            <input type="checkbox" id="calc_agri_sub_ql" />
+                            <input type="checkbox" id="calc_agri_sub_nv" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUMN 2: ANALYSIS & OUTCOMES -->
+                <div class="card card-b" style="display: flex; flex-direction: column; gap: 16px; border-top: 4px solid #8b5cf6; padding: 20px; background: #ffffff; box-shadow: var(--shadow-md); border-radius: 12px;">
+                    <h3 style="font-size: 1.15rem; font-weight: 800; color: #1e293b; margin: 0; border-bottom: 2px solid #f5f3ff; padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        📊 PHÂN TÍCH HIỆU QUẢ CHI TIẾT
+                    </h3>
+
+                    <!-- Section 2.1: Kết quả đơn hàng -->
+                    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+                        <span style="font-weight: 800; color: #047857; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; display: block; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px;">📋 Kết Quả Đơn Hàng</span>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #64748b;">Giá thị trường gốc:</span>
+                            <span id="out_market_total" style="font-weight: 700; color: black; font-size: 0.9rem;">0 đ</span>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: #ecfdf5; padding: 6px 10px; border-radius: 6px; border: 1px solid #a7f3d0;">
+                            <span style="color: #047857; font-weight: 700;">Giá ưu đãi chương trình:</span>
+                            <span id="out_promo_total" style="font-weight: 800; color: #047857; font-size: 0.95rem;">0 đ</span>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0;">
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px; text-align: center; box-shadow: var(--shadow-sm);">
+                                <span style="display: block; font-size: 0.72rem; color: #ef4444; font-weight: 700; text-transform: uppercase;">Lì Xì Khấu Trừ (3%)</span>
+                                <strong id="out_pay_lixi" style="color: #ef4444; font-size: 0.95rem; font-weight: 800; display: block; margin-top: 2px;">0 Lì xì</strong>
+                            </div>
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px; text-align: center; box-shadow: var(--shadow-sm);">
+                                <span style="display: block; font-size: 0.72rem; color: #1e293b; font-weight: 700; text-transform: uppercase;">Tiền mặt cần trả (97%)</span>
+                                <strong id="out_pay_cash" style="color: #1e293b; font-size: 0.95rem; font-weight: 800; display: block; margin-top: 2px;">0 đ</strong>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                            <span style="color: #64748b;">Sản phẩm nhận thực tế:</span>
+                            <span id="out_qty_total" style="font-weight: 700; color: black; font-size: 0.9rem;">0 kg</span>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 6px 10px; border-radius: 6px;">
+                            <span style="color: #475569; font-weight: 600;">Đơn giá vốn hiệu dụng:</span>
+                            <strong id="out_effective_unit_cost" style="color: #0f172a; font-size: 0.9rem; font-weight: 700;">0 đ</strong>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-top: 2px;">
+                            <span style="color: #64748b;">Điểm tích lũy F0 (1%):</span>
+                            <span id="out_points_earned" style="font-weight: 700; color: #2563eb; font-size: 0.88rem;">+0 điểm</span>
+                        </div>
+
+                        <!-- Section 2.2: Hiệu quả chuyển nhượng (ROI) -->
+                        <div id="out_resale_results_group" style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; box-shadow: var(--shadow-sm);">
+                            <span style="font-weight: 800; color: #b45309; display: block; font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px dashed #fcd34d; padding-bottom: 4px;">📊 Hiệu Quả Chuyển Nhượng</span>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #78350f;">Tiền thực thu về:</span>
+                                <span id="out_resale_net_received" style="font-weight: 700; color: black;">0 đ</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #78350f; font-weight: 600;">Lợi nhuận ròng Tiền Mặt:</span>
+                                <span id="out_resale_net_profit_cash" style="font-weight: 800; color: #047857; font-size: 0.88rem;">0 đ</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #b45309;">
+                                <span>Tổng lợi nhuận ròng quy đổi:</span>
+                                <span id="out_resale_net_profit_total" style="font-weight: 600;">0 đ</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-weight: 800; border-top: 1px solid #fcd34d; padding-top: 4px; align-items: center;">
+                                <span style="color: #78350f; font-size: 0.82rem;">Tỷ suất LN (ROI) Tiền mặt:</span>
+                                <span id="out_resale_roi" style="color: #10b981; font-size: 1rem; font-weight: 800;">0.00%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2.3: Báo cáo hoa hồng đại lý -->
+                    <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+                        <span style="font-weight: 800; color: #6d28d9; border-bottom: 1px dashed #ddd6fe; padding-bottom: 6px; display: block; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px;">📋 Hoạch Định Hoa Hồng Nhận Được</span>
+                        
+                        <div id="out_agri_commissions_list" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Dynamic commission lines will be injected here -->
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; font-weight: 800; background: #faf5ff; padding: 8px 10px; border-radius: 6px; border: 1px solid #e9d5ff; align-items: center; margin-top: 4px;">
+                            <span style="color: #6d28d9; font-weight: 800; font-size: 0.82rem; text-transform: uppercase;">Tổng hoa hồng nhận được:</span>
+                            <span id="out_agri_total_commission" style="color: #6d28d9; font-weight: 900; font-size: 1.1rem;">0 đ</span>
+                        </div>
+                        
+                        <!-- Dummy hidden containers for older unused elements to prevent js errors -->
+                        <div style="display: none;">
+                            <span id="out_agri_direct_commission">0 đ</span>
+                            <span id="out_agri_indirect_commission">0 đ</span>
+                            <span id="out_agri_rank_commission_label">3. Hoa hồng chức danh:</span>
+                            <span id="out_agri_rank_commission">0 đ</span>
+                            <span id="out_agri_nv_commission">0 đ</span>
+                            <span id="out_agri_ql_commission">0 đ</span>
+                            <span id="out_agri_gd_commission">0 đ</span>
+                            <span id="out_agri_tgd_commission">0 đ</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
 
         </main>
     </div>
@@ -621,10 +874,11 @@
            <div style="display: flex; flex: 1; overflow: hidden;">
                <!-- Sidebar Tabs -->
                <div style="width: 200px; background: #f1f5f9; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 10px 0;">
-                   <button class="admin-tab active" data-target="admin_tab_config" style="padding: 12px 20px; text-align: left; background: #e2e8f0; border: none; cursor: pointer; border-left: 3px solid #2563eb; font-weight: 500;">⚙️ Cấu Hình</button>
+                   <button class="admin-tab active" data-target="admin_tab_config" style="padding: 12px 20px; text-align: left; background: #e2e8f0; border: none; cursor: pointer; border-left: 3px solid #2563eb; font-weight: 500;">⚙️ Cấu HÌnh</button>
                    <button class="admin-tab" data-target="admin_tab_users" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">👥 Người Dùng</button>
                    <button class="admin-tab" data-target="admin_tab_roles" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">🏅 Chức Danh</button>
-                    <button class="admin-tab" data-target="admin_tab_products" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">📦 Sản Phẩm</button>
+                   <button class="admin-tab" data-target="admin_tab_products" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">📦 SP Gom Nhóm</button>
+                   <button class="admin-tab" data-target="admin_tab_agri_products" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">🌱 SP Nông Sản</button>
                    <button class="admin-tab" data-target="admin_tab_history" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">📜 Lịch Sử HT</button>
                </div>
                
@@ -679,21 +933,37 @@
                            <button id="btn_preview_promo" style="width: 100%; padding: 8px; background: #f59e0b; color: white; border: none; border-radius: 5px; font-weight: 600; margin-top: 10px; cursor: pointer;">
                                👀 Xem thử Banner & Popup
                            </button>
-                           <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #10b981;">Mức Max Hoa Hồng Phân Phối (%)</h3>
+                           <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #2563eb;">Mức Max Hoa Hồng Gom Nhóm (%)</h3>
                            <div class="input-group">
-                               <label>Mức max Trực tiếp</label>
+                               <label>Trực tiếp Gom nhóm</label>
                                <div class="input-wrapper">
                                    <input type="number" id="a_max_direct" value="10">
                                    <span class="unit">%</span>
                                </div>
                            </div>
                            <div class="input-group">
-                               <label>Mức max Gián tiếp</label>
+                               <label>Gián tiếp Gom nhóm</label>
                                <div class="input-wrapper">
                                    <input type="number" id="a_max_indirect" value="5">
                                    <span class="unit">%</span>
                                </div>
                            </div>
+                            
+                            <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #10b981;">Mức Max Hoa Hồng Nông Sản (%)</h3>
+                            <div class="input-group">
+                                <label>Trực tiếp Nông sản</label>
+                                <div class="input-wrapper">
+                                    <input type="number" id="a_agri_max_direct" value="10">
+                                    <span class="unit">%</span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label>Gián tiếp Nông sản</label>
+                                <div class="input-wrapper">
+                                    <input type="number" id="a_agri_max_indirect" value="5">
+                                    <span class="unit">%</span>
+                                </div>
+                            </div>
                            <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #d97706;">Phí Giao Dịch</h3>
                            <div class="input-group">
                                <label>Phí sàn (Cũ)</label>
@@ -792,92 +1062,132 @@
                    <div id="admin_tab_roles" class="admin-content" style="display: none; height: 100%; display: flex; flex-direction: column;">
                        <h2 class="card-title">🏅 Quản Lý Chức Danh</h2>
                        <p class="subtitle-note">Chỉnh sửa tên hiển thị của các chức danh trong hệ thống</p>
-                       <div class="input-list" style="max-width: 500px; margin-top: 10px;">
-                           <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                               <div style="flex: 1; font-weight: bold; color: #444;">Tên Chức Danh</div>
-                               <div style="width: 100px; font-weight: bold; color: #444; text-align: center;">Tỷ Lệ HH (%)</div>
-                           </div>
-                           <div class="input-group" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                               <div class="input-wrapper" style="flex: 1; background: #fff; border: 1px solid #ddd;">
-                                   <input type="text" id="role_name_tgd" value="Tổng Giám đốc" style="text-align: left;">
-                               </div>
-                               <div class="input-wrapper" style="width: 100px; background: #fff; border: 1px solid #ddd;">
-                                   <input type="number" id="a_max_tgd" value="20" style="text-align: right;">
-                                   <span class="unit" style="padding-right: 5px;">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                               <div class="input-wrapper" style="flex: 1; background: #fff; border: 1px solid #ddd;">
-                                   <input type="text" id="role_name_gd" value="Giám đốc" style="text-align: left;">
-                               </div>
-                               <div class="input-wrapper" style="width: 100px; background: #fff; border: 1px solid #ddd;">
-                                   <input type="number" id="a_max_gd" value="15" style="text-align: right;">
-                                   <span class="unit" style="padding-right: 5px;">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                               <div class="input-wrapper" style="flex: 1; background: #fff; border: 1px solid #ddd;">
-                                   <input type="text" id="role_name_ql" value="Quản lý" style="text-align: left;">
-                               </div>
-                               <div class="input-wrapper" style="width: 100px; background: #fff; border: 1px solid #ddd;">
-                                   <input type="number" id="a_max_ql" value="10" style="text-align: right;">
-                                   <span class="unit" style="padding-right: 5px;">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                               <div class="input-wrapper" style="flex: 1; background: #fff; border: 1px solid #ddd;">
-                                   <input type="text" id="role_name_nv" value="Nhân viên" style="text-align: left;">
-                               </div>
-                               <div class="input-wrapper" style="width: 100px; background: #fff; border: 1px solid #ddd;">
-                                   <input type="number" id="a_max_nv" value="5" style="text-align: right;">
-                                   <span class="unit" style="padding-right: 5px;">%</span>
-                               </div>
-                           </div>
-                           <button id="btn_save_roles" style="width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 5px; font-weight: 600; margin-top: 20px; cursor: pointer;">
-                               💾 Lưu Chức Danh & Tỷ Lệ
-                           </button>
-                       </div>
-                   </div>
-
-                   <!-- Tab 5: Quản lý Sản Phẩm -->
-                    <div id="admin_tab_products" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
-                        <h2 class="card-title">📦 Quản Lý Danh Sách Sản Phẩm</h2>
-                        <p class="subtitle-note">Thêm, sửa, xóa các sản phẩm trong hệ thống</p>
-                        
-                        <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
-                            <!-- Add / Edit Product Form -->
-                            <div style="flex: 1; min-width: 250px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: fit-content;">
-                                <h4 id="pm_form_title" style="margin: 0; font-size: 0.95rem; color: #1e293b; font-weight: 700;">➕ Thêm sản phẩm mới</h4>
-                                <input type="hidden" id="pm_product_id" value="">
-                                
-                                <div style="display: flex; flex-direction: column; gap: 10px;">
-                                    <div>
-                                        <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Tên sản phẩm</label>
-                                        <input type="text" id="pm_p_name" placeholder="Ví dụ: iPhone 15 Pro Max" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
-                                    </div>
-                                    <div>
-                                        <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Giá sản phẩm (VNĐ)</label>
-                                        <input type="text" id="pm_p_price" placeholder="Ví dụ: 4.000.000" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
-                                    </div>
-                                </div>
-                                
-                                <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px;">
-                                    <button type="button" id="btn_pm_cancel" style="display: none; padding: 6px 12px; background: #e2e8f0; color: #475569; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;">Hủy sửa</button>
-                                    <button type="button" id="btn_pm_save" style="padding: 6px 15px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;">Lưu sản phẩm</button>
-                                </div>
+                       <div class="input-list" style="max-width: 700px; margin-top: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: var(--shadow-sm);">
+                            <div class="role-grid" style=" margin-bottom: 10px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
+                                <div style="font-weight: bold; color: #1e293b; font-size: 0.9rem;">Tên Chức Danh</div>
+                                <div style="font-weight: bold; color: #2563eb; text-align: center; font-size: 0.9rem;">HH Gom nhóm (%)</div>
+                                <div style="font-weight: bold; color: #10b981; text-align: center; font-size: 0.9rem;">HH Nông sản (%)</div>
                             </div>
                             
-                            <!-- List of products -->
-                            <div style="flex: 1.2; min-width: 280px; display: flex; flex-direction: column; gap: 8px;">
-                                <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569;">Danh sách sản phẩm hiện tại</label>
-                                <div id="pm_products_list" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; background: #f8fafc;">
-                                    <div style="font-style: italic; color: #94a3b8; text-align: center; padding: 10px 0;">Đang tải danh sách sản phẩm...</div>
+                            <!-- TGD -->
+                            <div class="input-group role-grid" style=" align-items: center; margin-bottom: 12px;">
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="text" id="role_name_tgd" value="Tổng Giám đốc" style="text-align: left; padding: 8px 10px; font-weight: 600;">
+                                </div>
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="number" id="a_max_tgd" value="20" style="text-align: right; padding: 8px 10px; font-weight: 600; color: #2563eb;">
+                                    <span class="unit" style="padding-right: 5px; color: #64748b;">%</span>
+                                </div>
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="number" id="a_agri_max_tgd" value="20" style="text-align: right; padding: 8px 10px; font-weight: 600; color: #10b981;">
+                                    <span class="unit" style="padding-right: 5px; color: #64748b;">%</span>
                                 </div>
                             </div>
+
+                            <!-- GD -->
+                            <div class="input-group role-grid" style=" align-items: center; margin-bottom: 12px;">
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="text" id="role_name_gd" value="Giám đốc" style="text-align: left; padding: 8px 10px; font-weight: 600;">
+                                </div>
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="number" id="a_max_gd" value="15" style="text-align: right; padding: 8px 10px; font-weight: 600; color: #2563eb;">
+                                    <span class="unit" style="padding-right: 5px; color: #64748b;">%</span>
+                                </div>
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="number" id="a_agri_max_gd" value="15" style="text-align: right; padding: 8px 10px; font-weight: 600; color: #10b981;">
+                                    <span class="unit" style="padding-right: 5px; color: #64748b;">%</span>
+                                </div>
+                            </div>
+
+                            <!-- QL -->
+                            <div class="input-group role-grid" style=" align-items: center; margin-bottom: 12px;">
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="text" id="role_name_ql" value="Quản lý" style="text-align: left; padding: 8px 10px; font-weight: 600;">
+                                </div>
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="number" id="a_max_ql" value="10" style="text-align: right; padding: 8px 10px; font-weight: 600; color: #2563eb;">
+                                    <span class="unit" style="padding-right: 5px; color: #64748b;">%</span>
+                                </div>
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="number" id="a_agri_max_ql" value="10" style="text-align: right; padding: 8px 10px; font-weight: 600; color: #10b981;">
+                                    <span class="unit" style="padding-right: 5px; color: #64748b;">%</span>
+                                </div>
+                            </div>
+
+                            <!-- NV -->
+                            <div class="input-group role-grid" style=" align-items: center; margin-bottom: 12px;">
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="text" id="role_name_nv" value="Nhân viên" style="text-align: left; padding: 8px 10px; font-weight: 600;">
+                                </div>
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="number" id="a_max_nv" value="5" style="text-align: right; padding: 8px 10px; font-weight: 600; color: #2563eb;">
+                                    <span class="unit" style="padding-right: 5px; color: #64748b;">%</span>
+                                </div>
+                                <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <input type="number" id="a_agri_max_nv" value="5" style="text-align: right; padding: 8px 10px; font-weight: 600; color: #10b981;">
+                                    <span class="unit" style="padding-right: 5px; color: #64748b;">%</span>
+                                </div>
+                            </div>
+
+                            <button id="btn_save_roles" style="width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 700; margin-top: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem;" onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'">
+                                💾 Lưu Chức Danh & Tỷ Lệ
+                            </button>
                         </div>
                     </div>
 
                     <!-- Tab 4: Lịch Sử Hệ Thống -->
+                     <!-- Tab 6: Quản lý Sản Phẩm Nông Sản -->
+                     <div id="admin_tab_agri_products" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
+                         <h2 class="card-title">🌱 Quản Lý Danh Sách Sản Phẩm Nông Sản</h2>
+                         <p class="subtitle-note">Thêm, sửa, xóa các sản phẩm nông sản trong hệ thống</p>
+                         
+                         <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+                             <!-- Add / Edit Agri Product Form -->
+                             <div style="flex: 1; min-width: 250px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: fit-content;">
+                                 <h4 id="pm_agri_form_title" style="margin: 0; font-size: 0.95rem; color: #166534; font-weight: 700;">➕ Thêm sản phẩm nông sản mới</h4>
+                                 <input type="hidden" id="pm_agri_product_id" value="">
+                                 
+                                 <div style="display: flex; flex-direction: column; gap: 10px;">
+                                     <div>
+                                         <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #166534; margin-bottom: 4px;">Tên sản phẩm nông sản</label>
+                                         <input type="text" id="pm_agri_p_name" placeholder="Ví dụ: Sầu Riêng Ri6 Đắk Lắk" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                     </div>
+                                     <div>
+                                         <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #166534; margin-bottom: 4px;">Giá thị trường gốc (VNĐ)</label>
+                                         <input type="text" id="pm_agri_p_market_price" placeholder="Ví dụ: 250.000" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                     </div>
+                                     <div>
+                                         <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #166534; margin-bottom: 4px;">Giá ưu đãi chương trình (VNĐ)</label>
+                                         <input type="text" id="pm_agri_p_promo_price" placeholder="Ví dụ: 225.000" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                     </div>
+                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                         <div>
+                                             <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #166534; margin-bottom: 4px;">Mua sỉ đạt ngưỡng</label>
+                                             <input type="number" id="pm_agri_p_bulk_buy" value="10" min="1" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                         </div>
+                                         <div>
+                                             <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #166534; margin-bottom: 4px;">Thưởng tặng thêm</label>
+                                             <input type="number" id="pm_agri_p_bulk_gift" value="1" min="0" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                         </div>
+                                     </div>
+                                 </div>
+                                 
+                                 <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px;">
+                                     <button type="button" id="btn_pm_agri_cancel" style="display: none; padding: 6px 12px; background: #e2e8f0; color: #475569; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;">Hủy sửa</button>
+                                     <button type="button" id="btn_pm_agri_save" style="padding: 6px 15px; background: #16a34a; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;">Lưu sản phẩm</button>
+                                 </div>
+                             </div>
+                             
+                             <!-- List of agricultural products -->
+                             <div style="flex: 1.2; min-width: 280px; display: flex; flex-direction: column; gap: 8px;">
+                                 <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569;">Danh sách sản phẩm nông sản hiện tại</label>
+                                 <div id="pm_agri_products_list" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; background: #f8fafc;">
+                                     <div style="font-style: italic; color: #94a3b8; text-align: center; padding: 10px 0;">Đang tải danh sách...</div>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+
                    <div id="admin_tab_history" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
                        <h2 class="card-title">📜 Lịch Sử Hoạt Động Của Hệ Thống</h2>
                        <p class="subtitle-note">Lưu trữ các thao tác quan trọng của người dùng</p>
