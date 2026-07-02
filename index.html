@@ -37,20 +37,11 @@
                     🔐 Đăng nhập
                 </button>
                 <div id="user_info" style="display: none; color: #444; font-weight: 500;"></div>
-                <div id="user_default_rank_container" style="display: none; align-items: center; gap: 5px;">
-                    <select id="user_default_rank" style="padding: 3px 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.85rem; background: #f8f9fa;">
-                        <option value="tgd" id="udr_opt_tgd">Tổng Giám đốc</option>
-                        <option value="gd" id="udr_opt_gd" selected>Giám đốc</option>
-                        <option value="ql" id="udr_opt_ql">Quản lý</option>
-                        <option value="nv" id="udr_opt_nv">Nhân viên</option>
-                        <option value="kh" id="udr_opt_kh">Khách hàng (0%)</option>
-                    </select>
-                </div>
-                <button id="btn_admin_panel" style="display: none; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #8b5cf6; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
-                    ⚙️ Quản lý Hệ thống
+                <button id="btn_admin_panel" style="display: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: bold; background: #8b5cf6; padding: 5px 15px; border-radius: 20px; border: none; color: white;" title="Quản lý Hệ thống">
+                    ⚙️<span class="btn-text"> Quản lý Hệ thống</span>
                 </button>
-                <button id="btn_logout" style="display: none; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; background: #ef4444; padding: 5px 15px; border-radius: 20px; border: none; color: white;">
-                    👋 Đăng xuất
+                <button id="btn_logout" style="display: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: bold; background: #ef4444; padding: 5px 15px; border-radius: 20px; border: none; color: white;" title="Đăng xuất">
+                    👋<span class="btn-text"> Đăng xuất</span>
                 </button>
                 <input type="checkbox" id="admin_mode_toggle" style="display: none;">
             </div>
@@ -61,12 +52,6 @@
             <br>
             <span style="font-size: 0.9em; font-weight: normal; opacity: 0.9;">Thời gian áp dụng: <span id="promo_time_display"></span></span>
             <button onclick="this.parentElement.style.display='none'" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">&times;</button>
-        </div>
-
-        <div id="limit_warning_banner" style="display: none; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px 20px; border-radius: 8px; margin: 20px 0 0 0; position: relative; font-weight: 600; font-size: 0.9rem; text-align: center; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.1);">
-            <span style="font-size: 1.1rem; vertical-align: middle; margin-right: 6px;">⚠️</span> 
-            <span id="limit_warning_text"></span>
-            <button onclick="this.parentElement.style.display='none'" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #991b1b; font-size: 1.2rem; cursor: pointer; font-weight: bold;">&times;</button>
         </div>
 
         <!-- Main Module Switcher -->
@@ -303,7 +288,7 @@
                     <p class="subtitle-note">Hệ thống sẽ tự tính hoa hồng dựa trên vai trò của bạn</p>
                     <div class="input-list">
                         <!-- Nguồn đơn hàng removed -->
-                        <div class="input-group mt-2" style="display: none;">
+                        <div class="input-group mt-2">
                             <label style="font-weight: 500; margin-bottom: 5px; display: block; color: #555;">Cấp bậc của BẠN</label>
                             <select id="u_rank" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; font-size: 0.95rem; background-color: #fff; color: #333; outline: none;">
                                 <option value="tgd" id="opt_tgd">Tổng Giám đốc</option>
@@ -588,18 +573,23 @@
                             </div>
                         </div>
 
-                        <!-- Hidden Rank selector for compatibility -->
-                        <div style="display: none;">
-                            <select id="calc_agri_rank">
+                        <!-- Visible and synchronized Rank selector inside the calculator -->
+                        <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                            <label style="font-weight: 700; color: #334155; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">👑 Cấp Bậc / Chức Danh Tính Toán</label>
+                            <select id="calc_agri_rank" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; background: white; color: black; outline: none; transition: border-color 0.2s;">
                                 <option value="tgd">Tổng Giám đốc</option>
                                 <option value="gd" selected>Giám đốc</option>
                                 <option value="ql">Quản lý</option>
                                 <option value="nv">Nhân viên</option>
                                 <option value="kh">Khách hàng (0%)</option>
                             </select>
-                            <input type="checkbox" id="calc_agri_sub_gd" />
-                            <input type="checkbox" id="calc_agri_sub_ql" />
-                            <input type="checkbox" id="calc_agri_sub_nv" />
+                            
+                            <!-- Subordinate level checks (hidden because they are mapped to the main inputs) -->
+                            <div style="display: none;">
+                                <input type="checkbox" id="calc_agri_sub_gd" />
+                                <input type="checkbox" id="calc_agri_sub_ql" />
+                                <input type="checkbox" id="calc_agri_sub_nv" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -773,33 +763,16 @@
        </div>
     </div>
 
-    <div id="profile_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1500; justify-content: center; align-items: center;">
+    
+    <div id="pending_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1500; justify-content: center; align-items: center;">
        <div style="background: white; padding: 35px 30px; border-radius: 12px; width: 400px; max-width: 90vw; color: black; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-           <h3 style="margin-bottom: 10px; text-align: center; font-size: 1.3rem; color: #111;">Hoàn thiện thông tin</h3>
-           <p style="font-size: 0.95rem; color: #555; margin-bottom: 25px; text-align: center; line-height: 1.5;">Vui lòng cập nhật thông tin cá nhân của bạn để gửi yêu cầu phê duyệt sử dụng hệ thống.</p>
-           
-           <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #444; margin-bottom: 4px;">Danh sách tài khoản Lucky Shop</label>
-           <span style="font-size: 0.8rem; color: #6b7280; display: block; margin-bottom: 8px;">Mỗi người có thể đăng ký nhiều tài khoản. Nhập và bấm Thêm:</span>
-           
-           <div id="reg_accounts_list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; max-height: 120px; overflow-y: auto; border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; background: #f8fafc;">
-               <div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>
-           </div>
-           
-           <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-               <input type="text" id="profile_lucky_account_input" placeholder="Nhập tài khoản (SĐT/Email/ID)..." style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none;">
-               <button type="button" id="btn_add_reg_account" style="background: #2563eb; color: white; border: none; border-radius: 8px; padding: 0 15px; font-weight: bold; cursor: pointer; transition: background 0.2s;">Thêm</button>
-           </div>
-           
-           <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #444; margin-bottom: 8px;">Tên Team / Đội nhóm</label>
-           <input type="text" id="profile_team" placeholder="Nhập tên Team của bạn..." style="width: 100%; margin-bottom: 25px; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 1rem; outline: none;">
-           
-           <button id="btn_submit_profile" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: background 0.2s;">Gửi yêu cầu phê duyệt</button>
-           <div id="profile_error" style="color: #ef4444; font-size: 0.85rem; margin-top: 15px; text-align: center; display: none; font-weight: 500;"></div>
+           <h3 style="margin-bottom: 10px; text-align: center; font-size: 1.3rem; color: #111;">Chờ Phê Duyệt</h3>
+           <p style="font-size: 0.95rem; color: #555; margin-bottom: 25px; text-align: center; line-height: 1.5;">Tài khoản của bạn đang chờ quản trị viên phê duyệt. Vui lòng quay lại sau.</p>
        </div>
     </div>
 
     <!-- Edit Profile Modal -->
-    <div id="edit_profile_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1500; justify-content: center; align-items: center;">
+    <div id="edit_profile_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10500; justify-content: center; align-items: center;">
        <div style="background: white; padding: 25px; border-radius: 12px; width: 440px; max-width: 95vw; color: black; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow-y: auto; max-height: 90vh;">
            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e1e8f0; padding-bottom: 10px;">
                <h3 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 700;">⚙️ Thiết lập tài khoản</h3>
@@ -807,43 +780,41 @@
            </div>
            
            <div style="display: flex; flex-direction: column; gap: 15px;">
-               <div>
-                   <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 4px;">Danh sách tài khoản Lucky Shop</label>
-                   <span style="font-size: 0.78rem; color: #64748b; display: block; margin-bottom: 8px;">Quản lý các tài khoản Lucky Shop liên kết với bạn:</span>
-                   
-                   <div id="edit_reg_accounts_list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; max-height: 120px; overflow-y: auto; border: 1px dashed #cbd5e1; padding: 8px; border-radius: 6px; background: #f8fafc;">
-                       <div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>
-                   </div>
-                   
-                   <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                       <input type="text" id="edit_profile_lucky_account_input" placeholder="Nhập tài khoản (SĐT/Email/ID)..." style="flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'">
-                       <button type="button" id="btn_add_edit_account" style="background: #2563eb; color: white; border: none; border-radius: 6px; padding: 0 12px; font-weight: bold; cursor: pointer; transition: background 0.2s; font-size: 0.9rem;">Thêm</button>
-                   </div>
-               </div>
-               
-               <div>
-                   <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Tên Team / Đội nhóm</label>
-                   <input type="text" id="edit_profile_team" placeholder="Nhập tên Team của bạn..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#cbd5e1'">
-               </div>
-
-               <div>
-                   <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Số dư Lì xì Hiện tại (VNĐ)</label>
-                   <div style="display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding-right: 10px;">
-                       <input type="number" id="edit_profile_curr_lixi" placeholder="0" style="width: 100%; padding: 10px; border: none; background: transparent; font-size: 1rem; font-weight: bold; color: #2563eb; outline: none; text-align: right;">
-                       <span style="color: #64748b; font-weight: 500; font-size: 0.9rem; margin-left: 5px;">VNĐ</span>
-                   </div>
-               </div>
-
-               <div>
-                   <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Hạn mức Lì xì Hàng ngày (VNĐ)</label>
-                   <div style="display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding-right: 10px;">
-                       <input type="number" id="edit_profile_lucky_limit" placeholder="Nhập hạn mức cảnh báo..." style="width: 100%; padding: 10px; border: none; background: transparent; font-size: 1rem; font-weight: bold; color: #dc2626; outline: none; text-align: right;">
-                       <span style="color: #64748b; font-weight: 500; font-size: 0.9rem; margin-left: 5px;">VNĐ</span>
-                   </div>
-                   <span style="font-size: 0.8rem; color: #64748b; display: block; margin-top: 4px;">Hệ thống sẽ gửi cảnh báo nếu số dư lì xì hiện tại vượt quá hạn mức này.</span>
-               </div>
-           </div>
-
+                <div>
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Tên đại lý</label>
+                    <input type="text" id="edit_profile_name" placeholder="Tên hiển thị..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black;">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Tài khoản LuckyShop</label>
+                    <input type="text" id="edit_profile_ls_account" placeholder="Ví dụ: 0987654321" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black;">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Đội nhóm (Team)</label>
+                    <select id="edit_profile_team_select" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black; margin-bottom: 8px;">
+                        <!-- Dynamically populated -->
+                    </select>
+                    <input type="text" id="edit_profile_team_text" placeholder="Nhập tên đội nhóm mới..." style="display: none; width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Quyền hạn</label>
+                        <select id="edit_profile_role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black;">
+                            <option value="user">Người dùng</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Chức danh</label>
+                        <select id="edit_profile_rank" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black;">
+                            <option value="tgd">Tổng Giám đốc</option>
+                            <option value="gd">Giám đốc</option>
+                            <option value="ql">Quản lý</option>
+                            <option value="nv">Nhân viên</option>
+                            <option value="kh">Khách hàng (0%)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
            <div style="display: flex; gap: 10px; margin-top: 20px; border-top: 1px solid #e1e8f0; padding-top: 15px;">
                <button type="button" onclick="document.getElementById('edit_profile_modal').style.display='none'" style="flex: 1; background: #f1f5f9; border: none; padding: 10px; border-radius: 6px; font-weight: 600; color: #475569; cursor: pointer; font-size: 0.9rem;">Hủy</button>
                <button type="button" id="btn_save_edit_profile" style="flex: 1; background: #3b82f6; border: none; padding: 10px; border-radius: 6px; font-weight: 600; color: white; cursor: pointer; font-size: 0.9rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);">Áp dụng</button>
@@ -852,140 +823,243 @@
        </div>
     </div>
 
+        <!-- Team Modal (Create/Edit Team Metadata) -->
+    <div id="team_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10600; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 25px; border-radius: 12px; width: 460px; max-width: 95vw; color: black; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow-y: auto; max-height: 90vh;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e1e8f0; padding-bottom: 10px;">
+                <h3 id="team_modal_title" style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 700;">➕ Tạo Đội Nhóm Mới</h3>
+                <button type="button" onclick="document.getElementById('team_modal').style.display='none'" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+            </div>
+            
+            <input type="hidden" id="team_modal_mode" value="create"> <!-- 'create' or 'edit' -->
+            <input type="hidden" id="team_modal_old_name" value="">
 
-
-    <div id="pending_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 900; justify-content: center; align-items: center;">
-       <div style="text-align: center; max-width: 450px; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-           <div style="font-size: 4rem; margin-bottom: 20px; color: #f59e0b;">⏳</div>
-           <h2 style="color: #1f2937; margin-bottom: 15px; font-size: 1.6rem;">Đang chờ phê duyệt</h2>
-           <p style="color: #4b5563; font-size: 1.05rem; margin-bottom: 25px; line-height: 1.6;">Yêu cầu tạo tài khoản của bạn đã được ghi nhận thành công và đang chờ Admin phê duyệt. Khi hệ thống duyệt, bạn sẽ nhận được thông báo qua Email.</p>
-           <button id="btn_logout_from_pending" style="padding: 10px 25px; background: #e5e7eb; color: #4b5563; border: none; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;">Đăng xuất</button>
-       </div>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Tên Đội Nhóm (Team Name) *</label>
+                    <input type="text" id="team_modal_name" placeholder="Ví dụ: Team Miền Nam" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black;">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Chỉ Định Trưởng Nhóm (Leader)</label>
+                    <select id="team_modal_leader" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black;">
+                        <!-- Populate dynamic list of registered users -->
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Mô Tả Đội Nhóm</label>
+                    <textarea id="team_modal_desc" placeholder="Mô tả nhiệm vụ, vị trí địa lý hoặc ghi chú..." style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black; height: 70px; resize: none;"></textarea>
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; font-size: 0.9rem; color: #475569; margin-bottom: 6px;">Chỉ Tiêu KPI Doanh Số (VNĐ)</label>
+                    <input type="text" id="team_modal_kpi" placeholder="Ví dụ: 150.000.000" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; background: white; color: black; text-align: right;">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px; border-top: 1px solid #e1e8f0; padding-top: 15px;">
+                <button type="button" onclick="document.getElementById('team_modal').style.display='none'" style="flex: 1; background: #f1f5f9; border: none; padding: 10px; border-radius: 6px; font-weight: 600; color: #475569; cursor: pointer; font-size: 0.9rem;">Hủy</button>
+                <button type="button" id="btn_save_team_metadata" style="flex: 1; background: #10b981; border: none; padding: 10px; border-radius: 6px; font-weight: 600; color: white; cursor: pointer; font-size: 0.9rem; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">Lưu Đội Nhóm</button>
+            </div>
+            <div id="team_modal_error" style="color: #ef4444; font-size: 0.85rem; margin-top: 10px; text-align: center; display: none; font-weight: 500;"></div>
+        </div>
     </div>
 
-    <!-- Admin Modal -->
-    <div id="admin_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-       <div style="background: white; border-radius: 10px; width: 900px; max-width: 95vw; height: 85vh; color: black; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden;">
-           <div style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa;">
-               <h3 style="margin: 0; font-size: 1.25rem;">Quản Lý Hệ Thống</h3>
-               <button id="btn_close_admin" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+    <!-- Admin Dashboard -->
+    <main id="admin_dashboard" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8fafc; z-index: 9999; flex-direction: column; margin: 0; border-radius: 0; border: none; overflow: hidden; box-sizing: border-box; font-family: 'Inter', sans-serif;">
+       <!-- Premium Header -->
+       <div style="padding: 16px 28px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.02); z-index: 10;">
+           <div style="display: flex; align-items: center; gap: 14px;">
+               <div style="width: 38px; height: 38px; background: linear-gradient(135deg, #1e3a8a, #3b82f6); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 6px rgba(59,130,246,0.2);">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+               </div>
+               <div>
+                   <h3 style="margin: 0; font-size: 1.2rem; color: #0f172a; font-weight: 700; letter-spacing: -0.02em;">Workspace Control</h3>
+                   <div style="font-size: 0.85rem; color: #64748b; margin-top: 2px; font-weight: 500;">Hệ Thống Quản Trị Lucky Shop</div>
+               </div>
+           </div>
+           <button id="btn_close_admin" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 18px; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: #475569; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+               Trở về App
+           </button>
+       </div>
+       
+       <div style="display: flex; flex: 1; flex-direction: row; height: calc(100% - 73px);">
+           <!-- Premium Sidebar Tabs -->
+           <div class="admin-sidebar" style="width: 260px; background: #ffffff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 24px 16px; gap: 4px; box-shadow: 1px 0 2px rgba(0,0,0,0.01); z-index: 5;">
+               <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; margin: 0 0 10px 12px;">Hệ Thống</div>
+               <button class="admin-tab active" data-target="admin_tab_config" style="border-radius: 8px; margin-bottom: 4px; padding: 12px 16px; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                   Cấu Hình Cốt Lõi
+               </button>
+               <button class="admin-tab" data-target="admin_tab_users" style="border-radius: 8px; margin-bottom: 4px; padding: 12px 16px; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                   Người Dùng & Quyền
+               </button>
+               <button class="admin-tab" data-target="admin_tab_roles" style="border-radius: 8px; margin-bottom: 4px; padding: 12px 16px; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                   Quản Lý Chức Danh
+               </button>
+               <button class="admin-tab" data-target="admin_tab_teams" style="border-radius: 8px; margin-bottom: 24px; padding: 12px 16px; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                   Quản Lý Đội Nhóm
+               </button>
+               
+               <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; margin: 0 0 10px 12px;">Sản Phẩm & Kho</div>
+               <button class="admin-tab" data-target="admin_tab_products" style="border-radius: 8px; margin-bottom: 4px; padding: 12px 16px; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                   SP Gom Nhóm
+               </button>
+               <button class="admin-tab" data-target="admin_tab_agri_products" style="border-radius: 8px; margin-bottom: 24px; padding: 12px 16px; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg>
+                   SP Nông Sản
+               </button>
+
+               <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; margin: 0 0 10px 12px;">Báo Cáo & Logs</div>
+               <button class="admin-tab" data-target="admin_tab_history" style="border-radius: 8px; margin-bottom: 4px; padding: 12px 16px; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                   Lịch Sử Hệ Thống
+               </button>
            </div>
            
-           <div style="display: flex; flex: 1; overflow: hidden;">
-               <!-- Sidebar Tabs -->
-               <div style="width: 200px; background: #f1f5f9; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 10px 0;">
-                   <button class="admin-tab active" data-target="admin_tab_config" style="padding: 12px 20px; text-align: left; background: #e2e8f0; border: none; cursor: pointer; border-left: 3px solid #2563eb; font-weight: 500;">⚙️ Cấu HÌnh</button>
-                   <button class="admin-tab" data-target="admin_tab_users" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">👥 Người Dùng</button>
-                   <button class="admin-tab" data-target="admin_tab_roles" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">🏅 Chức Danh</button>
-                   <button class="admin-tab" data-target="admin_tab_products" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">📦 SP Gom Nhóm</button>
-                   <button class="admin-tab" data-target="admin_tab_agri_products" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">🌱 SP Nông Sản</button>
-                   <button class="admin-tab" data-target="admin_tab_history" style="padding: 12px 20px; text-align: left; background: transparent; border: none; cursor: pointer; border-left: 3px solid transparent; font-weight: 500;">📜 Lịch Sử HT</button>
-               </div>
-               
-               <!-- Content Area -->
-               <div style="flex: 1; overflow-y: auto; padding: 20px; background: #fff;">
+           <!-- Content Area -->
+           <div style="flex: 1; overflow-y: auto; padding: 30px 40px; background: #f8fafc; position: relative;">
                    <!-- Tab 1: Cấu hình hệ thống -->
                    <div id="admin_tab_config" class="admin-content active">
                        <h2 class="card-title">⚙️ Cấu Hình Hệ Thống</h2>
                        <p class="subtitle-note">Chỉ Admin được chỉnh sửa các thông số này</p>
-                       <div class="input-list" style="max-width: 500px;">
-                           <div class="input-group">
-                               <label>Tỷ lệ lì xì / ngày</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="p_dailyLuckyRate" value="0.12" step="0.01">
-                                   <span class="unit">%</span>
+                       <div class="admin-config-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1000px;">
+                           <!-- Card 1: User & Rights -->
+                           <div class="admin-config-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                               <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #1e293b; border-bottom: 2px solid #2563eb; padding-bottom: 5px; display: inline-block;">👤 Phân Quyền</h3>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Chức danh user mới</label>
+                                   <div class="input-wrapper" style="padding-right: 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <select id="p_defaultUserRank" style="width: 100%; padding: 8px; border: none; background: transparent; outline: none; font-size: 0.95rem; font-weight: 500; color: #334155;">
+                                           <option value="tgd">Tổng Giám đốc</option>
+                                           <option value="gd" selected>Giám đốc</option>
+                                           <option value="ql">Quản lý</option>
+                                           <option value="nv">Nhân viên</option>
+                                           <option value="kh">Khách hàng (0%)</option>
+                                       </select>
+                                   </div>
                                </div>
                            </div>
-                           <div class="input-group">
-                               <label>Hệ số số dư lì xì</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="p_luckyMul" value="5.5" step="0.1">
-                                   <span class="unit">lần</span>
+
+                           <!-- Card 2: Lucky Money -->
+                           <div class="admin-config-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                               <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #1e293b; border-bottom: 2px solid #10b981; padding-bottom: 5px; display: inline-block;">🧧 Lì Xì</h3>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Tỷ lệ lì xì / ngày</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="p_dailyLuckyRate" value="0.12" step="0.01" style="padding: 8px; font-size: 0.95rem;">
+                                       <span class="unit" style="padding-right: 8px;">%</span>
+                                   </div>
+                               </div>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Hệ số số dư lì xì</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="p_luckyMul" value="5.5" step="0.1" style="padding: 8px; font-size: 0.95rem;">
+                                       <span class="unit" style="padding-right: 8px;">lần</span>
+                                   </div>
                                </div>
                            </div>
-                           <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #d97706;">Cấu Hình Khấu Trừ & Khuyến Mại</h3>
-                           <div class="input-group">
-                               <label>Tỷ lệ Phiếu / VNĐ (Bình thường)</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="p_moneyToTicketRate" value="1" step="0.001" title="Tỷ lệ 1 VNĐ bằng bao nhiêu Phiếu Khấu Trừ">
-                                   <span class="unit"></span>
+
+                           <!-- Card 3: Promo & Discount -->
+                           <div class="admin-config-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                               <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #1e293b; border-bottom: 2px solid #d97706; padding-bottom: 5px; display: inline-block;">🎁 Khuyến Mại</h3>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Phiếu / VNĐ (Bình thường)</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="p_moneyToTicketRate" value="1" step="0.001" style="padding: 8px; font-size: 0.95rem;">
+                                   </div>
+                               </div>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Phiếu / VNĐ (Khuyến Mại)</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="p_moneyToTicketRatePromo" value="1.095" step="0.001" style="padding: 8px; font-size: 0.95rem;">
+                                   </div>
+                               </div>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Thời gian bắt đầu</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px;">
+                                       <input type="datetime-local" id="p_promoStartDate" value="2026-05-16T00:00" style="padding: 4px; font-size: 0.9rem; border: none; outline: none; background: transparent; color: #334155;">
+                                   </div>
+                               </div>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Thời gian kết thúc</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px;">
+                                       <input type="datetime-local" id="p_promoEndDate" value="2026-05-25T23:59" style="padding: 4px; font-size: 0.9rem; border: none; outline: none; background: transparent; color: #334155;">
+                                   </div>
+                               </div>
+                               <button id="btn_preview_promo" style="width: 100%; padding: 10px; background: #f59e0b; color: white; border: none; border-radius: 6px; font-weight: 600; margin-top: 15px; cursor: pointer; transition: background 0.2s;">
+                                   👀 Xem thử Banner & Popup
+                               </button>
+                           </div>
+
+                           <!-- Card 4: Commissions -->
+                           <div class="admin-config-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                               <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #1e293b; border-bottom: 2px solid #8b5cf6; padding-bottom: 5px; display: inline-block;">💸 Hoa Hồng</h3>
+                               
+                               <div style="font-weight: 600; color: #475569; margin: 10px 0 5px 0; font-size: 0.9rem;">Sản Phẩm Gom Nhóm</div>
+                               <div class="input-group" style="padding: 5px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Trực tiếp</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="a_max_direct" value="10" style="padding: 8px; font-size: 0.95rem;">
+                                       <span class="unit" style="padding-right: 8px;">%</span>
+                                   </div>
+                               </div>
+                               <div class="input-group" style="padding: 5px 0 15px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Gián tiếp</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="a_max_indirect" value="5" style="padding: 8px; font-size: 0.95rem;">
+                                       <span class="unit" style="padding-right: 8px;">%</span>
+                                   </div>
+                               </div>
+
+                               <div style="font-weight: 600; color: #475569; margin: 10px 0 5px 0; font-size: 0.9rem; border-top: 1px dashed #cbd5e1; padding-top: 15px;">Sản Phẩm Nông Sản</div>
+                               <div class="input-group" style="padding: 5px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Trực tiếp</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="a_agri_max_direct" value="10" style="padding: 8px; font-size: 0.95rem;">
+                                       <span class="unit" style="padding-right: 8px;">%</span>
+                                   </div>
+                               </div>
+                               <div class="input-group" style="padding: 5px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Gián tiếp</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="a_agri_max_indirect" value="5" style="padding: 8px; font-size: 0.95rem;">
+                                       <span class="unit" style="padding-right: 8px;">%</span>
+                                   </div>
                                </div>
                            </div>
-                           <div class="input-group">
-                               <label>Tỷ lệ Khuyến Mại</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="p_moneyToTicketRatePromo" value="1.095" step="0.001" title="Tỷ lệ khuyến mại">
-                                   <span class="unit"></span>
+
+                           <!-- Card 5: Fees -->
+                           <div class="admin-config-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                               <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem; color: #1e293b; border-bottom: 2px solid #ef4444; padding-bottom: 5px; display: inline-block;">💳 Phí Giao Dịch</h3>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Phí sàn (Cũ)</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="p_platformFeeOldRate" value="0.5" step="0.1" style="padding: 8px; font-size: 0.95rem;">
+                                       <span class="unit" style="padding-right: 8px;">%</span>
+                                   </div>
+                               </div>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Phí sàn (Mới)</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                       <input type="number" id="p_platformFeeRate" value="5" step="0.1" title="Phí bán lại cho sàn" style="padding: 8px; font-size: 0.95rem;">
+                                       <span class="unit" style="padding-right: 8px;">%</span>
+                                   </div>
+                               </div>
+                               <div class="input-group" style="padding: 10px 0; border-bottom: none;">
+                                   <label style="margin-bottom: 5px; display: block;">Thời gian áp dụng</label>
+                                   <div class="input-wrapper" style="background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px;">
+                                       <input type="datetime-local" id="p_platformFeeStartDate" value="2026-05-25T00:00" style="padding: 4px; font-size: 0.9rem; border: none; outline: none; background: transparent; color: #334155;">
+                                   </div>
                                </div>
                            </div>
-                           <div class="input-group">
-                               <label>Thời gian bắt đầu (GMT+7)</label>
-                               <div class="input-wrapper">
-                                   <input type="datetime-local" id="p_promoStartDate" value="2026-05-16T00:00">
-                               </div>
-                           </div>
-                           <div class="input-group">
-                               <label>Thời gian kết thúc (GMT+7)</label>
-                               <div class="input-wrapper">
-                                   <input type="datetime-local" id="p_promoEndDate" value="2026-05-25T23:59">
-                               </div>
-                           </div>
-                           <button id="btn_preview_promo" style="width: 100%; padding: 8px; background: #f59e0b; color: white; border: none; border-radius: 5px; font-weight: 600; margin-top: 10px; cursor: pointer;">
-                               👀 Xem thử Banner & Popup
-                           </button>
-                           <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #2563eb;">Mức Max Hoa Hồng Gom Nhóm (%)</h3>
-                           <div class="input-group">
-                               <label>Trực tiếp Gom nhóm</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="a_max_direct" value="10">
-                                   <span class="unit">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group">
-                               <label>Gián tiếp Gom nhóm</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="a_max_indirect" value="5">
-                                   <span class="unit">%</span>
-                               </div>
-                           </div>
-                            
-                            <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #10b981;">Mức Max Hoa Hồng Nông Sản (%)</h3>
-                            <div class="input-group">
-                                <label>Trực tiếp Nông sản</label>
-                                <div class="input-wrapper">
-                                    <input type="number" id="a_agri_max_direct" value="10">
-                                    <span class="unit">%</span>
-                                </div>
-                            </div>
-                            <div class="input-group">
-                                <label>Gián tiếp Nông sản</label>
-                                <div class="input-wrapper">
-                                    <input type="number" id="a_agri_max_indirect" value="5">
-                                    <span class="unit">%</span>
-                                </div>
-                            </div>
-                           <h3 style="margin-top: 15px; margin-bottom: 10px; font-size: 1rem; color: #d97706;">Phí Giao Dịch</h3>
-                           <div class="input-group">
-                               <label>Phí sàn (Cũ)</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="p_platformFeeOldRate" value="0.5" step="0.1">
-                                   <span class="unit">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group">
-                               <label>Phí sàn (Mới)</label>
-                               <div class="input-wrapper">
-                                   <input type="number" id="p_platformFeeRate" value="5" step="0.1" title="Phí bán lại cho sàn">
-                                   <span class="unit">%</span>
-                               </div>
-                           </div>
-                           <div class="input-group">
-                               <label>Thời gian áp dụng Mới (GMT+7)</label>
-                               <div class="input-wrapper">
-                                   <input type="datetime-local" id="p_platformFeeStartDate" value="2026-05-25T00:00">
-                               </div>
-                           </div>
-                           <button id="btn_save_config" style="width: 100%; padding: 10px; background: #10b981; color: white; border: none; border-radius: 5px; font-weight: 600; margin-top: 20px; cursor: pointer;">
+                       </div>
+                       
+                       <div style="max-width: 1000px; display: flex; justify-content: flex-end; margin-top: 25px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                           <button id="btn_save_config" style="padding: 14px 30px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1.05rem; cursor: pointer; box-shadow: 0 4px 6px rgba(16,185,129,0.2); transition: all 0.2s;">
                                💾 Lưu Cấu Hình Lên Hệ Thống
                            </button>
                        </div>
@@ -1007,9 +1081,9 @@
                                     <input type="text" id="new_user_name" placeholder="Ví dụ: Nguyễn Văn A" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
                                 </div>
                                 <div>
-                                    <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Vai trò</label>
+                                    <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Quyền hạn</label>
                                     <select id="new_user_role" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
-                                        <option value="user">Người dùng</option>
+                                        <option value="user" selected>Người dùng</option>
                                         <option value="admin">Admin</option>
                                     </select>
                                 </div>
@@ -1017,20 +1091,25 @@
                             
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; width: 100%;">
                                 <div>
+                                    <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Chức danh</label>
+                                    <select id="new_user_rank" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                        <option value="tgd">Tổng Giám đốc</option>
+                                        <option value="gd" selected>Giám đốc</option>
+                                        <option value="ql">Quản lý</option>
+                                        <option value="nv">Nhân viên</option>
+                                        <option value="kh">Khách hàng (0%)</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Tài khoản LuckyShop</label>
                                     <input type="text" id="new_user_account" placeholder="Ví dụ: 0987654321" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
                                 </div>
                                 <div>
-                                    <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Tên Team</label>
-                                    <input type="text" id="new_user_team" placeholder="Ví dụ: Team HN" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
-                                </div>
-                                <div>
-                                    <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Số dư hiện tại (đ)</label>
-                                    <input type="number" id="new_user_balance" placeholder="Ví dụ: 5000000" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
-                                </div>
-                                <div>
-                                    <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Hạn mức cảnh báo (đ)</label>
-                                    <input type="number" id="new_user_limit" placeholder="Ví dụ: 10000000" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
+                                    <label style="display: block; font-weight: 600; font-size: 0.82rem; color: #475569; margin-bottom: 4px;">Đội nhóm (Team)</label>
+                                    <select id="new_user_team_select" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black; margin-bottom: 6px;">
+                                        <!-- Dynamically loaded from Team Management -->
+                                    </select>
+                                    <input type="text" id="new_user_team_text" placeholder="Nhập tên Team mới..." style="display: none; width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem; outline: none; background: white; color: black;">
                                 </div>
                             </div>
                             
@@ -1044,13 +1123,13 @@
                                <thead style="background: #f8f9fa;">
                                    <tr>
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">Email</th>
-                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">Tên</th>
-                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">LS Account / Team</th>
+                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">Tên đại lý</th>
+                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: left !important;">Đội nhóm (Team)</th>
+                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Quyền hạn (Role)</th>
+                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Chức danh (Rank)</th>
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Trạng Thái</th>
-                                       <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Quyền</th>
                                        <th style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center !important;">Hành Động</th>
-                                   </tr>
-                               </thead>
+                                   </tr></thead>
                                <tbody id="user_mgmt_table_body">
                                    <!-- Users injected here -->
                                </tbody>
@@ -1135,9 +1214,107 @@
                         </div>
                     </div>
 
-                    <!-- Tab 4: Lịch Sử Hệ Thống -->
-                     <!-- Tab 6: Quản lý Sản Phẩm Nông Sản -->
-                     <div id="admin_tab_agri_products" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
+                    <!-- Tab: Quản lý Đội nhóm -->
+                    <div id="admin_tab_teams" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div>
+                                <h2 class="card-title" style="margin-bottom: 4px;">👥 Quản Lý Đội Nhóm</h2>
+                                <p class="subtitle-note">Thống kê, thiết lập trưởng nhóm, chỉ tiêu doanh số và quản lý thành viên các đội nhóm</p>
+                            </div>
+                            <button id="btn_open_create_team" onclick="openTeamModal(null)" style="padding: 10px 18px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3); transition: all 0.2s;" onmouseover="this.style.backgroundColor='#059669'" onmouseout="this.style.backgroundColor='#10b981'">
+                                <span>➕ Tạo Đội Nhóm Mới</span>
+                            </button>
+                        </div>
+
+                        <!-- Top Team Statistics -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <div style="background: #eff6ff; color: #2563eb; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">👥</div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">Tổng Số Đội Nhóm</div>
+                                    <div id="team_stat_total_teams" style="font-size: 1.4rem; font-weight: 700; color: #1e293b;">0</div>
+                                </div>
+                            </div>
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <div style="background: #f0fdf4; color: #10b981; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">🧑‍💼</div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">Thành Viên Đã Vào Nhóm</div>
+                                    <div id="team_stat_total_members" style="font-size: 1.4rem; font-weight: 700; color: #1e293b;">0</div>
+                                </div>
+                            </div>
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <div style="background: #fffbeb; color: #f59e0b; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">🏆</div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">Tổng Chỉ Tiêu KPI (VNĐ)</div>
+                                    <div id="team_stat_total_kpi" style="font-size: 1.4rem; font-weight: 700; color: #1e293b;">0</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Search and Filter Bar -->
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 15px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                            <span style="color: #64748b; font-size: 1.1rem;">🔍</span>
+                            <input type="text" id="team_search_input" placeholder="Tìm kiếm tên đội nhóm, trưởng nhóm hoặc thành viên..." style="flex: 1; border: none; outline: none; font-size: 0.9rem; font-family: inherit; color: black; background: transparent;">
+                        </div>
+
+                        <!-- Teams Data Table -->
+                        <div class="table-container" style="border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; display: flex; flex: 1; flex-direction: column;">
+                            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f8f9fa;">
+                                    <tr>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: left !important; width: 220px;">Tên Team & Mô Tả</th>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: left !important; width: 180px;">Trưởng Nhóm</th>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: right !important; width: 150px;">Chỉ Tiêu KPI (Tháng)</th>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: center !important; width: 110px;">Thành Viên</th>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: left !important;">Danh Sách Nhân Sự</th>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: center !important; width: 140px;">Hành Động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="team_mgmt_table_body">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div id="admin_tab_products" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
+                       <h2 class="card-title">📦 Quản Lý Sản Phẩm Gom Nhóm</h2>
+                       <p class="subtitle-note">Thêm, sửa, xóa các sản phẩm gom nhóm trong hệ thống</p>
+                       
+                       <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px;">
+                           <!-- Add / Edit Product Form -->
+                           <div style="flex: 1; min-width: 250px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: fit-content;">
+                               <h4 id="pm_form_title" style="margin: 0; font-size: 0.95rem; color: #1e40af; font-weight: 700;">➕ Thêm sản phẩm gom nhóm mới</h4>
+                               <input type="hidden" id="pm_product_id" value="">
+                               
+                               <div style="display: flex; flex-direction: column; gap: 10px;">
+                                   <div>
+                                       <label style="display: block; font-weight: 600; font-size: 0.85rem; color: #1e3a8a; margin-bottom: 4px;">Tên Sản Phẩm *</label>
+                                       <input type="text" id="pm_p_name" placeholder="Ví dụ: Táo Mỹ" style="width: 100%; padding: 8px 10px; border: 1px solid #93c5fd; border-radius: 6px; font-size: 0.9rem; outline: none;">
+                                   </div>
+                                   <div>
+                                       <label style="display: block; font-weight: 600; font-size: 0.85rem; color: #1e3a8a; margin-bottom: 4px;">Giá Bán (đ) *</label>
+                                       <input type="text" id="pm_p_price" placeholder="Ví dụ: 50.000" style="width: 100%; padding: 8px 10px; border: 1px solid #93c5fd; border-radius: 6px; font-size: 0.9rem; outline: none; text-align: right;">
+                                   </div>
+                               </div>
+                               
+                               <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 5px;">
+                                   <button id="btn_pm_cancel" style="padding: 8px 15px; background: #cbd5e1; color: #475569; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: none;">Hủy</button>
+                                   <button id="btn_pm_save" style="padding: 8px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;">Lưu Sản Phẩm</button>
+                               </div>
+                           </div>
+                           
+                           <!-- Products List -->
+                           <div style="flex: 2; min-width: 300px; display: flex; flex-direction: column;">
+                               <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: #334155; font-weight: 700;">📋 Danh Sách Sản Phẩm Gom Nhóm</h4>
+                               <div id="pm_products_list" style="flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; overflow-y: auto; max-height: 400px; padding: 10px;">
+                                   <!-- Items injected here via JS -->
+                                   <div style="font-style: italic; color: #94a3b8; text-align: center; padding: 15px 0;">Đang tải dữ liệu...</div>
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+                   <div id="admin_tab_agri_products" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
                          <h2 class="card-title">🌱 Quản Lý Danh Sách Sản Phẩm Nông Sản</h2>
                          <p class="subtitle-note">Thêm, sửa, xóa các sản phẩm nông sản trong hệ thống</p>
                          
@@ -1188,33 +1365,103 @@
                          </div>
                      </div>
 
-                   <div id="admin_tab_history" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
-                       <h2 class="card-title">📜 Lịch Sử Hoạt Động Của Hệ Thống</h2>
-                       <p class="subtitle-note">Lưu trữ các thao tác quan trọng của người dùng</p>
-                       <div style="margin-top: 10px; display: flex; gap: 10px;">
-                           <input type="text" id="history_search_input" placeholder="🔍 Tìm kiếm theo email hoặc hoạt động..." style="flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 0.9rem;">
-                           <button id="btn_export_history" style="padding: 8px 15px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">📥 Xuất CSV</button>
-                       </div>
-                       <div style="flex: 1; overflow-y: auto; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-top: 10px;">
-                           <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-                               <thead style="background: #e2e8f0;">
-                                   <tr>
-                                       <th style="padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; width: 140px;">Thời Gian</th>
-                                       <th style="padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; width: 220px;">Email</th>
-                                       <th style="padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Hoạt Động</th>
-                                   </tr>
-                               </thead>
-                               <tbody id="history_table_body">
-                                   <!-- History injected here -->
-                                   <tr><td colspan="3" style="text-align: center; padding: 20px; color: #666;">Chưa có dữ liệu</td></tr>
-                               </tbody>
-                           </table>
-                       </div>
-                   </div>
+                                       <div id="admin_tab_history" class="admin-content" style="display: none; height: 100%; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div>
+                                <h2 class="card-title" style="margin-bottom: 4px;">📜 Nhật Ký Hoạt Động Hệ Thống</h2>
+                                <p class="subtitle-note">Nhật ký kiểm toán thời gian thực lưu giữ mọi thay đổi của quản trị viên và thành viên</p>
+                            </div>
+                            <button id="btn_export_history" style="padding: 10px 18px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3); transition: all 0.2s;" onmouseover="this.style.backgroundColor='#059669'" onmouseout="this.style.backgroundColor='#10b981'">
+                                <span>📥 Xuất Nhật Ký (CSV)</span>
+                            </button>
+                        </div>
+
+                        <!-- System Audit Overview Cards -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <div style="background: #eff6ff; color: #2563eb; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">📋</div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">Tổng Số Thao Tác</div>
+                                    <div id="history_stat_total" style="font-size: 1.4rem; font-weight: 700; color: #1e293b;">0</div>
+                                </div>
+                            </div>
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <div style="background: #f0fdf4; color: #10b981; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">👤</div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">QTV Hoạt Động</div>
+                                    <div id="history_stat_users" style="font-size: 1.4rem; font-weight: 700; color: #1e293b;">0</div>
+                                </div>
+                            </div>
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <div style="background: #fdf2f8; color: #db2777; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">⚡</div>
+                                <div>
+                                    <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">Thao Tác Hôm Nay</div>
+                                    <div id="history_stat_today" style="font-size: 1.4rem; font-weight: 700; color: #1e293b;">0</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Filter Controls -->
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Search and Dropdown -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                                <div class="history-search-container" style="flex: 1.5; min-width: 250px; display: flex; gap: 8px; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; background: #f8fafc;">
+                                    <span style="color: #64748b; font-size: 1.1rem;">🔍</span>
+                                    <input type="text" id="history_search_input" placeholder="Tìm kiếm theo email, thao tác hoặc chi tiết siêu dữ liệu..." style="width: 100%; border: none; outline: none; font-size: 0.9rem; font-family: inherit; color: black; background: transparent;">
+                                </div>
+                                <div class="history-search-container" style="flex: 1; min-width: 180px; display: flex; gap: 8px; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; background: white;">
+                                    <span style="color: #64748b; font-size: 1rem;">👤</span>
+                                    <select id="history_user_filter" style="width: 100%; border: none; outline: none; font-size: 0.85rem; font-family: inherit; color: black; background: white; cursor: pointer;">
+                                        <option value="">-- Tất cả người dùng --</option>
+                                    </select>
+                                </div>
+                                <button id="btn_clear_history_filters" style="padding: 10px 15px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f1f5f9; color: #475569; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                                    Xóa Bộ Lọc
+                                </button>
+                            </div>
+
+                            <!-- Tabs categories pills -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 10px; align-items: center;">
+                                <span style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 5px; letter-spacing: 0.05em;">Phân Loại:</span>
+                                <button class="history-cat-pill active" data-category="all" style="padding: 6px 12px; border: 1px solid #3b82f6; background: #eff6ff; color: #2563eb; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.15s;">
+                                    🌐 Tất Cả
+                                </button>
+                                <button class="history-cat-pill" data-category="auth_roles" style="padding: 6px 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; border-radius: 20px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.15s;">
+                                    🔑 Tài Khoản & Phân Quyền
+                                </button>
+                                <button class="history-cat-pill" data-category="teams" style="padding: 6px 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; border-radius: 20px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.15s;">
+                                    👥 Quản Lý Đội Nhóm
+                                </button>
+                                <button class="history-cat-pill" data-category="products" style="padding: 6px 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; border-radius: 20px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.15s;">
+                                    📦 Sản Phẩm & Đại Lý
+                                </button>
+                                <button class="history-cat-pill" data-category="config" style="padding: 6px 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; border-radius: 20px; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.15s;">
+                                    ⚙️ Cấu Hình Hệ Thống
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- History Audit Table -->
+                        <div class="table-container" style="border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; display: flex; flex: 1; flex-direction: column;">
+                            <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                <thead style="background: #f8f9fa;">
+                                    <tr>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: left !important; width: 180px;">Thời Gian</th>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: left !important; width: 260px;">Người Thực Hiện</th>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: left !important; width: 160px;">Phân Loại</th>
+                                        <th style="padding: 12px 15px; border-bottom: 2px solid #e2e8f0; text-align: left !important;">Chi Tiết Hành Động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history_table_body">
+                                    <tr><td colspan="4" style="text-align: center; padding: 25px; color: #64748b; font-style: italic;">Đang tải dữ liệu lịch sử hệ thống...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                </div>
            </div>
        </div>
-    </div>
+    </main>
 
     <script type="module" src="app.js"></script>
 </body>

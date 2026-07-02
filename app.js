@@ -99,7 +99,7 @@ if (true) {
   const btnLogout = document.getElementById("btn_logout");
   const btnAdminPanel = document.getElementById("btn_admin_panel");
 
-  const adminModal = document.getElementById("admin_modal");
+  const adminModal = document.getElementById("admin_dashboard");
   const btnCloseAdmin = document.getElementById("btn_close_admin");
   const userMgmtTableBody = document.getElementById("user_mgmt_table_body");
   const btnAddUser = document.getElementById("btn_add_user");
@@ -160,6 +160,261 @@ if (true) {
   let globalUsersListUnsub = null;
   let currentIp = "Đang lấy...";
   
+  // Restore Auth Logic
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      btnLogin.style.display = "none";
+      btnLogout.style.display = "block";
+      userInfoDisplay.style.display = "block";
+      
+      const userDocRef = doc(db, "users", user.uid);
+      userSnapshotUnsub = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          currentUserData = data;
+          currentUserRole = data.role || "user";
+          if (currentUserRole === "admin" || currentUserRole === "superadmin" || (data.email && data.email.toLowerCase() === "vinh.ngtienmdb@gmail.com") || (user.email && user.email.toLowerCase() === "vinh.ngtienmdb@gmail.com")) {
+              currentUserRole = "admin";
+              btnAdminPanel.style.display = "block";
+          } else {
+              btnAdminPanel.style.display = "none";
+          }
+          
+          let accountInfo = data.luckyShopAccount ? `<span class="hide-mobile"> - LS: ${data.luckyShopAccount}</span>` : "";
+          if (data.luckyShopTeam) {
+             accountInfo = data.luckyShopAccount 
+               ? `<span class="hide-mobile"> - LS: ${data.luckyShopAccount} (${data.luckyShopTeam})</span>`
+               : `<span class="hide-mobile"> (${data.luckyShopTeam})</span>`;
+          }
+
+          const defaultRank = data.defaultRank || "gd";
+          const rankNameDisplay = window.roleNames?.[defaultRank] || (defaultRank === "tgd" ? "Tổng Giám đốc" : defaultRank);
+          
+          let rankBadgeBg = "#e2e8f0";
+          let rankBadgeFg = "#475569";
+          if (defaultRank === "tgd") { rankBadgeBg = "#fee2e2"; rankBadgeFg = "#991b1b"; }
+          else if (defaultRank === "gd") { rankBadgeBg = "#dbeafe"; rankBadgeFg = "#1e40af"; }
+          else if (defaultRank === "ql") { rankBadgeBg = "#fef3c7"; rankBadgeFg = "#92400e"; }
+          else if (defaultRank === "nv") { rankBadgeBg = "#f1f5f9"; rankBadgeFg = "#475569"; }
+          else if (defaultRank === "kh") { rankBadgeBg = "#ecfdf5"; rankBadgeFg = "#065f46"; }
+          
+          userInfoDisplay.innerHTML = `
+            <span style="font-weight: 600; cursor: pointer; text-decoration: underline;" onclick="window.editUserDetail('${user.uid}')" title="Nhấn để thiết lập tài khoản">
+              👤 ${data.displayName || user.email}
+            </span> 
+            <span style="background: ${rankBadgeBg}; color: ${rankBadgeFg}; padding: 2px 8px; border-radius: 6px; font-size: 0.8em; margin-left: 5px; font-weight: 700;">
+              ${rankNameDisplay}
+            </span>
+            <span class="hide-mobile" style="background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; margin-left: 5px; font-weight: 500;">
+              ${currentUserRole.toUpperCase()}
+            </span>
+            ${accountInfo}
+            <button onclick="window.editUserDetail('${user.uid}')" class="hide-mobile" style="background: transparent; border: none; cursor: pointer; font-size: 0.9rem; margin-left: 5px;" title="Thiết lập tài khoản">⚙️</button>
+          `;
+
+          // Synchronize rank/title across system modules & agricultural calculator
+          if (inputs.u_rank && inputs.u_rank.value !== defaultRank) {
+              inputs.u_rank.value = defaultRank;
+              if (typeof updateSubordinateVisibility === 'function') {
+                  updateSubordinateVisibility();
+              }
+          }
+          
+          const editRankEl = document.getElementById("edit_profile_rank");
+          if (editRankEl && editRankEl.value !== defaultRank) {
+              editRankEl.value = defaultRank;
+          }
+          
+          const calcRankEl = document.getElementById("calc_agri_rank");
+          if (calcRankEl && calcRankEl.value !== defaultRank) {
+              calcRankEl.value = defaultRank;
+          }
+          
+          if (window.agriState && window.agriState.rank !== defaultRank) {
+              window.agriState.rank = defaultRank;
+              if (typeof window.renderAgriDashboard === 'function') {
+                  window.renderAgriDashboard();
+              }
+          }
+          
+          if (data.status === "pending") {
+              const pm1 = document.getElementById("pending_modal"); if(pm1) pm1.style.display = "flex";
+              document.body.style.overflow = "hidden";
+          } else if (data.status === "approved" || currentUserRole === "admin") {
+               const pm2 = document.getElementById("pending_modal"); if(pm2) pm2.style.display = "none";
+               document.body.style.overflow = "";
+          }
+        } else {
+          // Document missing - fallback
+          btnAdminPanel.style.display = (user.email && user.email.toLowerCase() === "vinh.ngtienmdb@gmail.com") ? "block" : "none";
+          if (user.email && user.email.toLowerCase() === "vinh.ngtienmdb@gmail.com") currentUserRole = "admin";
+        }
+      });
+      loginModal.style.display = "none";
+    } else {
+      btnLogin.style.display = "block";
+      btnLogout.style.display = "none";
+      btnAdminPanel.style.display = "none";
+      userInfoDisplay.style.display = "none";
+      userInfoDisplay.innerHTML = "";
+      currentUserRole = "user";
+      currentUserData = null;
+      if (userSnapshotUnsub) userSnapshotUnsub();
+      const pm2 = document.getElementById("pending_modal"); if(pm2) pm2.style.display = "none";
+      document.body.style.overflow = "";
+    }
+  });
+
+  if (btnDoLoginGoogle) {
+    btnDoLoginGoogle.addEventListener("click", async () => {
+      try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const userRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userRef);
+        if (!docSnap.exists()) {
+          const lowerEmail = user.email ? user.email.toLowerCase() : "";
+          // Check if admin pre-created a record for this email
+          let preRole = lowerEmail === "vinh.ngtienmdb@gmail.com" ? "admin" : "user";
+          let preStatus = lowerEmail === "vinh.ngtienmdb@gmail.com" ? "approved" : "new";
+          let preLsAccount = "";
+          let preLsTeam = "";
+          let preRank = "gd";
+          
+          try {
+              const q = query(collection(db, "users"), where("email", "==", lowerEmail));
+              const querySnapshot = await getDocs(q);
+              if (!querySnapshot.empty) {
+                  const preDoc = querySnapshot.docs[0].data();
+                  preRole = preDoc.role || preRole;
+                  preStatus = preDoc.status || preStatus;
+                  preLsAccount = preDoc.luckyShopAccount || "";
+                  preLsTeam = preDoc.luckyShopTeam || "";
+                  preRank = preDoc.defaultRank || "gd";
+                  // Delete the pre-created doc if we can (admin only usually, but we can try)
+                  try { deleteDoc(querySnapshot.docs[0].ref); } catch(e){}
+              }
+          } catch(e) {}
+
+          await setDoc(userRef, {
+            email: lowerEmail,
+            displayName: user.displayName || lowerEmail.split("@")[0],
+            role: preRole,
+            status: preStatus,
+            luckyShopAccount: preLsAccount,
+            luckyShopTeam: preLsTeam,
+            defaultRank: preRank,
+            createdAt: new Date().toISOString()
+          });
+        }
+        showToast("Đăng nhập thành công!", "success");
+      } catch (err) {
+        console.error(err);
+        if (loginError) {
+          loginError.innerText = "Lỗi đăng nhập: " + err.message;
+          loginError.style.display = "block";
+        }
+      }
+    });
+  }
+
+  if (btnDoLoginEmail) {
+    btnDoLoginEmail.addEventListener("click", async () => {
+      const email = loginEmailInput.value.trim().toLowerCase();
+      const pwd = loginPwdInput.value;
+      if (!email || !pwd) {
+        if (loginError) {
+            loginError.innerText = "Vui lòng nhập email và mật khẩu";
+            loginError.style.display = "block";
+        }
+        return;
+      }
+      try {
+        await signInWithEmailAndPassword(auth, email, pwd);
+        showToast("Đăng nhập thành công!", "success");
+      } catch (err) {
+        // Query database to see if this user is already pre-created or registered
+        let userExists = false;
+        try {
+          const q = query(collection(db, "users"), where("email", "==", email));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            userExists = true;
+          }
+        } catch(e) {
+          console.error("Error checking user existence:", e);
+        }
+
+        if (userExists) {
+          // If they already exist in our database, it's a wrong password!
+          if (loginError) {
+            loginError.innerText = "Sai mật khẩu hoặc thông tin đăng nhập không chính xác. Vui lòng kiểm tra lại.";
+            loginError.style.display = "block";
+          }
+        } else if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+            try {
+                const res = await createUserWithEmailAndPassword(auth, email, pwd);
+                const user = res.user;
+                const userRef = doc(db, "users", user.uid);
+                const lowerEmail = user.email ? user.email.toLowerCase() : "";
+                
+                let preRole = lowerEmail === "vinh.ngtienmdb@gmail.com" ? "admin" : "user";
+                let preStatus = lowerEmail === "vinh.ngtienmdb@gmail.com" ? "approved" : "new";
+                let preLsAccount = "";
+                let preLsTeam = "";
+                let preRank = "gd";
+                
+                try {
+                    const q = query(collection(db, "users"), where("email", "==", lowerEmail));
+                    const querySnapshot = await getDocs(q);
+                    if (!querySnapshot.empty) {
+                        const preDoc = querySnapshot.docs[0].data();
+                        preRole = preDoc.role || preRole;
+                        preStatus = preDoc.status || preStatus;
+                        preLsAccount = preDoc.luckyShopAccount || "";
+                        preLsTeam = preDoc.luckyShopTeam || "";
+                        preRank = preDoc.defaultRank || "gd";
+                        try { deleteDoc(querySnapshot.docs[0].ref); } catch(e){}
+                    }
+                } catch(e) {}
+
+                await setDoc(userRef, {
+                    email: lowerEmail,
+                    displayName: lowerEmail.split("@")[0],
+                    role: preRole,
+                    status: preStatus,
+                    luckyShopAccount: preLsAccount,
+                    luckyShopTeam: preLsTeam,
+                    defaultRank: preRank,
+                    createdAt: new Date().toISOString()
+                });
+                showToast("Đăng ký & Đăng nhập thành công!", "success");
+            } catch (createErr) {
+                console.error(createErr);
+                if (loginError) {
+                    loginError.innerText = "Lỗi đăng ký: " + createErr.message;
+                    loginError.style.display = "block";
+                }
+            }
+        } else {
+            console.error(err);
+            if (loginError) {
+                loginError.innerText = "Lỗi đăng nhập: " + err.message;
+                loginError.style.display = "block";
+            }
+        }
+      }
+    });
+  }
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", () => {
+      signOut(auth);
+    });
+  }
+
+  
   // Lấy IP của người dùng
   fetch('https://api.ipify.org?format=json')
     .then(r => r.json())
@@ -179,42 +434,232 @@ if (true) {
   };
 
   let historyData = [];
+  window.historyActiveCategory = "all";
+
+  const detectActionCategory = (actionText) => {
+    const text = (actionText || "").toLowerCase();
+    if (text.includes("đội nhóm") || text.includes("team") || text.includes("nhóm")) {
+      return "teams";
+    }
+    if (
+      text.includes("duyệt") || 
+      text.includes("quyền") || 
+      text.includes("chức danh") || 
+      text.includes("tên user") || 
+      text.includes("chặn") || 
+      text.includes("xóa user") || 
+      text.includes("tạo user") || 
+      text.includes("account") || 
+      text.includes("khóa tài khoản") ||
+      text.includes("mở khóa") ||
+      text.includes("tên")
+    ) {
+      return "auth_roles";
+    }
+    if (
+      text.includes("sản phẩm") || 
+      text.includes("đại lý") || 
+      text.includes("giá") || 
+      text.includes("price") || 
+      text.includes("cost") || 
+      text.includes("agency") || 
+      text.includes("product") || 
+      text.includes("khuyến mãi") || 
+      text.includes("nông sản")
+    ) {
+      return "products";
+    }
+    if (
+      text.includes("cấu hình") || 
+      text.includes("config") || 
+      text.includes("rank_names") || 
+      text.includes("promo") || 
+      text.includes("vòng quay") ||
+      text.includes("thiết lập")
+    ) {
+      return "config";
+    }
+    return "other";
+  };
 
   const renderHistoryList = () => {
     const historyTableBody = document.getElementById("history_table_body");
     if (!historyTableBody) return;
     
     const searchInput = document.getElementById("history_search_input");
-    const filterText = searchInput ? searchInput.value.toLowerCase() : "";
+    const filterText = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+    const userFilter = document.getElementById("history_user_filter");
+    const selectedUser = userFilter ? userFilter.value : "";
+    
+    const activeCategory = window.historyActiveCategory || "all";
     
     const filtered = historyData.filter(data => {
         const email = (data.email || "").toLowerCase();
         const action = (data.action || "").toLowerCase();
-        return email.includes(filterText) || action.includes(filterText);
+        const category = detectActionCategory(data.action);
+        
+        // 1. Category Filter
+        if (activeCategory !== "all" && category !== activeCategory) {
+          return false;
+        }
+
+        // 2. User Filter
+        if (selectedUser && data.email !== selectedUser) {
+          return false;
+        }
+
+        // 3. Search Filter
+        if (filterText) {
+          const matchesEmail = email.includes(filterText);
+          const matchesAction = action.includes(filterText);
+          
+          let matchesMeta = false;
+          if (data.metadata) {
+            matchesMeta = JSON.stringify(data.metadata).toLowerCase().includes(filterText);
+          }
+          
+          return matchesEmail || matchesAction || matchesMeta;
+        }
+
+        return true;
     });
 
+    // Update real-time statistics boxes
+    const totalLogs = historyData.length;
+    const uniqueUsers = new Set(historyData.map(d => d.email).filter(Boolean)).size;
+    const todayStr = new Date().toDateString();
+    const todayLogs = historyData.filter(d => {
+      if (!d.createdAt) return false;
+      return d.createdAt.toDate().toDateString() === todayStr;
+    }).length;
+
+    const statTotalEl = document.getElementById("history_stat_total");
+    const statUsersEl = document.getElementById("history_stat_users");
+    const statTodayEl = document.getElementById("history_stat_today");
+
+    if (statTotalEl) statTotalEl.innerText = totalLogs.toString();
+    if (statUsersEl) statUsersEl.innerText = uniqueUsers.toString();
+    if (statTodayEl) statTodayEl.innerText = todayLogs.toString();
+
     if (filtered.length === 0) {
-      historyTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #666;">Chưa có dữ liệu</td></tr>';
+      historyTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 30px; color: #64748b; font-style: italic;">Không tìm thấy lịch sử hoạt động phù hợp bộ lọc.</td></tr>';
       return;
     }
     
     historyTableBody.innerHTML = "";
     filtered.forEach((data) => {
       const tr = document.createElement("tr");
+      tr.className = "history-row";
       
-      let metaHtml = "";
-      if (data.metadata && Object.keys(data.metadata).length > 0) {
-          metaHtml = `<br><small style="color: #666;">${JSON.stringify(data.metadata)}</small>`;
+      const category = detectActionCategory(data.action);
+      
+      let catBadge = "";
+      if (category === "teams") {
+        catBadge = `<span style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; display: inline-block;">👥 Đội Nhóm</span>`;
+      } else if (category === "auth_roles") {
+        catBadge = `<span style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; display: inline-block;">🔑 Quyền & TK</span>`;
+      } else if (category === "products") {
+        catBadge = `<span style="background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; display: inline-block;">📦 Sản Phẩm</span>`;
+      } else if (category === "config") {
+        catBadge = `<span style="background: #faf5ff; color: #7c3aed; border: 1px solid #e9d5ff; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; display: inline-block;">⚙️ Hệ Thống</span>`;
+      } else {
+        catBadge = `<span style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; display: inline-block;">📝 Khác</span>`;
+      }
+
+      let timeHtml = "";
+      if (data.createdAt) {
+        const date = data.createdAt.toDate();
+        const fullDate = date.toLocaleDateString('vi-VN');
+        const fullTime = date.toTimeString().split(' ')[0];
+        timeHtml = `
+          <div style="font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 4px; font-size: 0.9rem;">🕒 ${fullTime}</div>
+          <div style="font-size: 0.75rem; color: #64748b; font-weight: 500; margin-top: 1px;">${fullDate}</div>
+        `;
+      } else {
+        timeHtml = `<span style="color: #cbd5e1; font-style: italic;">-</span>`;
+      }
+
+      // Elegant parsed metadata labels
+      let metadataTagsHtml = "";
+      if (data.metadata && typeof data.metadata === 'object' && Object.keys(data.metadata).length > 0) {
+        const tags = [];
+        Object.entries(data.metadata).forEach(([key, val]) => {
+          if (val === null || val === undefined) return;
+          
+          let displayKey = key;
+          let displayVal = val;
+          let colorBg = "#f1f5f9";
+          let colorText = "#475569";
+
+          if (key === "targetUser") {
+            displayKey = "Đối tượng";
+            colorBg = "#eff6ff";
+            colorText = "#1d4ed8";
+          } else if (key === "role") {
+            displayKey = "Vai trò";
+            displayVal = val === "admin" ? "Admin" : (val === "user" ? "User" : val);
+            colorBg = "#faf5ff";
+            colorText = "#6d28d9";
+          } else if (key === "defaultRank") {
+            displayKey = "Chức danh";
+            displayVal = window.roleNames?.[val] || val;
+            colorBg = "#fef3c7";
+            colorText = "#b45309";
+          } else if (key === "teamName" || key === "luckyShopTeam") {
+            displayKey = "Đội nhóm";
+            colorBg = "#f0fdf4";
+            colorText = "#15803d";
+          } else if (key === "kpi") {
+            displayKey = "KPI";
+            if (!isNaN(parseFloat(val))) {
+              displayVal = parseFloat(val).toLocaleString('vi-VN') + " đ";
+            }
+            colorBg = "#fff1f2";
+            colorText = "#be123c";
+          } else if (key === "leader") {
+            displayKey = "Trưởng nhóm";
+            colorBg = "#ecfdf5";
+            colorText = "#047857";
+          } else if (key === "price" || key === "cost") {
+            displayKey = "Giá trị";
+            if (!isNaN(parseFloat(val))) {
+              displayVal = parseFloat(val).toLocaleString('vi-VN') + " đ";
+            }
+          } else if (key === "newName" || key === "oldName") {
+            displayKey = key === "newName" ? "Tên mới" : "Tên cũ";
+          }
+
+          if (typeof displayVal === 'object') {
+            displayVal = JSON.stringify(displayVal);
+          }
+
+          tags.push(`
+            <span style="display: inline-flex; align-items: center; gap: 4px; background: ${colorBg}; color: ${colorText}; border: 1px solid rgba(0,0,0,0.03); border-radius: 6px; padding: 2px 7px; font-size: 0.75rem; font-weight: 500;">
+              <strong style="font-weight: 600;">${displayKey}:</strong> ${displayVal}
+            </span>
+          `);
+        });
+
+        if (tags.length > 0) {
+          metadataTagsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px;">${tags.join("")}</div>`;
+        }
       }
       
       tr.innerHTML = `
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">${data.createdAtStr || "-"}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">
-           <div style="font-weight: 500;">${data.email || "Unknown"}</div>
-           <div style="color: #64748b; font-size: 0.8rem;">IP: ${data.ip || "Unknown"}</div>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle;">
+          ${timeHtml}
         </td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">
-           ${data.action || "-"}${metaHtml}
+        <td style="padding: 12px 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle;">
+           <div style="font-weight: 600; color: #334155;">${data.email || "Hệ thống"}</div>
+           <div style="color: #94a3b8; font-size: 0.75rem; font-family: monospace; margin-top: 1px;">IP: ${data.ip || "unknown"}</div>
+        </td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle;">
+           ${catBadge}
+        </td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle;">
+           <div style="font-weight: 600; color: #0f172a; font-size: 0.9rem;">${data.action || "-"}</div>
+           ${metadataTagsHtml}
         </td>
       `;
       historyTableBody.appendChild(tr);
@@ -225,11 +670,68 @@ if (true) {
     if (!auth.currentUser || currentUserRole !== "admin") return;
     if (historyListUnsub) historyListUnsub();
 
+    // Input Search change
     const searchInput = document.getElementById("history_search_input");
     if (searchInput) {
         searchInput.removeEventListener("input", renderHistoryList);
         searchInput.addEventListener("input", renderHistoryList);
     }
+
+    // User Filter change
+    const userFilter = document.getElementById("history_user_filter");
+    if (userFilter) {
+      userFilter.onchange = () => {
+        renderHistoryList();
+      };
+    }
+
+    // Clear Filters Click
+    const btnClearFilters = document.getElementById("btn_clear_history_filters");
+    if (btnClearFilters) {
+      btnClearFilters.onclick = () => {
+        if (searchInput) searchInput.value = "";
+        if (userFilter) userFilter.value = "";
+        
+        document.querySelectorAll(".history-cat-pill").forEach(p => {
+          if (p.getAttribute("data-category") === "all") {
+            p.classList.add("active");
+            p.style.border = "1px solid #3b82f6";
+            p.style.background = "#eff6ff";
+            p.style.color = "#2563eb";
+            p.style.fontWeight = "600";
+          } else {
+            p.classList.remove("active");
+            p.style.border = "1px solid #e2e8f0";
+            p.style.background = "#f8fafc";
+            p.style.color = "#475569";
+            p.style.fontWeight = "500";
+          }
+        });
+        window.historyActiveCategory = "all";
+        renderHistoryList();
+      };
+    }
+
+    // Category pills event binders
+    document.querySelectorAll(".history-cat-pill").forEach(pill => {
+      pill.onclick = (e) => {
+        document.querySelectorAll(".history-cat-pill").forEach(p => {
+          p.classList.remove("active");
+          p.style.border = "1px solid #e2e8f0";
+          p.style.background = "#f8fafc";
+          p.style.color = "#475569";
+          p.style.fontWeight = "500";
+        });
+        pill.classList.add("active");
+        pill.style.border = "1px solid #3b82f6";
+        pill.style.background = "#eff6ff";
+        pill.style.color = "#2563eb";
+        pill.style.fontWeight = "600";
+        
+        window.historyActiveCategory = pill.getAttribute("data-category");
+        renderHistoryList();
+      };
+    });
     
     const btnExportHistory = document.getElementById("btn_export_history");
     if (btnExportHistory) {
@@ -266,6 +768,21 @@ if (true) {
           data.createdAtStr = timeStr;
           historyData.push(data);
       });
+
+      // Dynamically populate user selectors based on snapshot data
+      const userFilter = document.getElementById("history_user_filter");
+      if (userFilter) {
+        const prevVal = userFilter.value;
+        const emails = Array.from(new Set(historyData.map(d => d.email).filter(Boolean))).sort();
+        userFilter.innerHTML = '<option value="">-- Tất cả người dùng --</option>';
+        emails.forEach(email => {
+          userFilter.innerHTML += `<option value="${email}">${email}</option>`;
+        });
+        if (prevVal && emails.includes(prevVal)) {
+          userFilter.value = prevVal;
+        }
+      }
+
       renderHistoryList();
     }, (error) => {
       console.error("Lỗi lấy lịch sử:", error);
@@ -286,6 +803,7 @@ if (true) {
   if (btnAdminPanel && adminModal) {
     btnAdminPanel.addEventListener("click", () => {
       adminModal.style.display = "flex";
+      document.body.style.overflow = "hidden";
       loadUsersList();
       loadHistoryList();
 
@@ -295,23 +813,81 @@ if (true) {
       if (adminTabs.length > 0 && adminContents.length > 0) {
         adminTabs.forEach((t) => {
           t.classList.remove("active");
-          t.style.borderLeftColor = "transparent";
-          t.style.background = "transparent";
+          t.style.borderLeftColor = "";
+          t.style.background = "";
         });
         adminContents.forEach((c) => (c.style.display = "none"));
 
         adminTabs[0].classList.add("active");
-        adminTabs[0].style.borderLeftColor = "#2563eb";
-        adminTabs[0].style.background = "#e2e8f0";
+        adminTabs[0].style.borderLeftColor = "";
+        adminTabs[0].style.background = "";
         const targetId = adminTabs[0].getAttribute("data-target");
-        document.getElementById(targetId).style.display = "block";
+        const tgt = document.getElementById(targetId); if(tgt) tgt.style.display = "block";
       }
     });
     if (btnCloseAdmin) {
       btnCloseAdmin.addEventListener("click", () => {
         adminModal.style.display = "none";
+        document.body.style.overflow = "";
         if (usersListUnsub) usersListUnsub();
         if (historyListUnsub) historyListUnsub();
+      });
+    }
+
+    if (btnAddUser) {
+      btnAddUser.addEventListener("click", async () => {
+        const email = newUserEmail.value.trim().toLowerCase();
+        const name = newUserName.value.trim();
+        const role = newUserRole.value;
+        const defaultRank = document.getElementById("new_user_rank") ? document.getElementById("new_user_rank").value : "gd";
+        
+        const teamSelect = document.getElementById("new_user_team_select");
+        let lsTeam = "";
+        if (teamSelect) {
+          if (teamSelect.value === "__new__") {
+            const teamText = document.getElementById("new_user_team_text");
+            lsTeam = teamText ? teamText.value.trim() : "";
+          } else {
+            lsTeam = teamSelect.value;
+          }
+        }
+        
+        const lsAccount = document.getElementById("new_user_account") ? document.getElementById("new_user_account").value.trim() : "";
+        
+        if (!email) {
+          showToast("Vui lòng nhập email", "error");
+          return;
+        }
+        
+        try {
+          btnAddUser.disabled = true;
+          await addDoc(collection(db, "users"), {
+            email: email,
+            displayName: name,
+            role: role,
+            defaultRank: defaultRank,
+            status: "approved",
+            luckyShopAccount: lsAccount,
+            luckyShopAccounts: lsAccount ? [lsAccount] : [],
+            luckyShopTeam: lsTeam,
+            createdAt: new Date().toISOString()
+          });
+          showToast("Đã thêm user mới thành công", "success");
+          newUserEmail.value = "";
+          newUserName.value = "";
+          if (document.getElementById("new_user_account")) document.getElementById("new_user_account").value = "";
+          if (document.getElementById("new_user_team_text")) {
+            document.getElementById("new_user_team_text").value = "";
+            document.getElementById("new_user_team_text").style.display = "none";
+          }
+          if (teamSelect) teamSelect.value = "";
+          if (typeof logAction === 'function') logAction("Thêm user mới", { email, role, defaultRank, team: lsTeam });
+        } catch (e) {
+          console.error(e);
+          showToast("Lỗi khi thêm user: " + e.message, "error");
+        } finally {
+          btnAddUser.disabled = false;
+        }
       });
     }
   }
@@ -323,18 +899,21 @@ if (true) {
     tab.addEventListener("click", () => {
       adminTabsNode.forEach((t) => {
         t.classList.remove("active");
-        t.style.borderLeftColor = "transparent";
-        t.style.background = "transparent";
+        t.style.borderLeftColor = "";
+        t.style.background = "";
       });
       adminContentsNode.forEach((c) => (c.style.display = "none"));
 
       tab.classList.add("active");
-      tab.style.borderLeftColor = "#2563eb";
-      tab.style.background = "#e2e8f0";
+      tab.style.borderLeftColor = "";
+      tab.style.background = "";
       const targetId = tab.getAttribute("data-target");
-      document.getElementById(targetId).style.display = "flex";
-      if (targetId === "admin_tab_config") {
-        document.getElementById(targetId).style.display = "block";
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.style.display = "flex";
+        if (targetId === "admin_tab_config") {
+          targetEl.style.display = "block";
+        }
       }
     });
   });
@@ -361,51 +940,54 @@ if (true) {
     });
   }
 
-  const userDefaultRankSelect = document.getElementById("user_default_rank");
-  if (userDefaultRankSelect) {
-    userDefaultRankSelect.addEventListener("change", (e) => {
-      const selectedRank = e.target.value;
-      if (auth.currentUser) {
-        updateDoc(doc(db, "users", auth.currentUser.uid), {
-          defaultRank: selectedRank,
-        })
-          .then(() => {
-            showToast("Đã lưu chức danh mặc định!", "success");
-            logAction("Cập nhật chức danh mặc định cá nhân", { defaultRank: selectedRank });
-          })
-          .catch((err) =>
-            showToast("Lỗi lưu chức danh: " + err.message, "error"),
-          );
-      }
 
-      // Sync Gom nhóm Rank
-      const u_rank = document.getElementById("u_rank");
-      if (u_rank) {
-        u_rank.value = selectedRank;
-        if (typeof updateSubordinateVisibility === "function")
-          updateSubordinateVisibility();
-        if (typeof calculate === "function") calculate();
-      }
-
-      // Sync Nông sản Rank
-      if (window.agriState) {
-        window.agriState.rank = selectedRank;
-        const selectRank = document.getElementById("calc_agri_rank");
-        if (selectRank) {
-          selectRank.value = selectedRank;
-        }
-        if (typeof window.renderAgriDashboard === "function") {
-          window.renderAgriDashboard();
-        }
-      }
-    });
-  }
+  window.roleNames = {
+    tgd: "Tổng Giám đốc",
+    gd: "Giám đốc",
+    ql: "Quản lý",
+    nv: "Nhân viên",
+    kh: "Khách hàng"
+  };
 
   // Listen for roles config
   onSnapshot(doc(db, "configs", "roles"), (docSnap) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
-      const setRoleName = (idUi, idLbl, idOpt, lblComm, idUdrOpt, val) => {
+      
+      if (data.tgd) window.roleNames.tgd = data.tgd;
+      if (data.gd) window.roleNames.gd = data.gd;
+      if (data.ql) window.roleNames.ql = data.ql;
+      if (data.nv) window.roleNames.nv = data.nv;
+      if (data.kh) window.roleNames.kh = data.kh;
+
+      const updateAllRankSelects = () => {
+        const selects = [
+          "u_rank",
+          "edit_profile_rank",
+          "p_defaultUserRank",
+          "new_user_rank",
+          "calc_agri_rank"
+        ];
+        selects.forEach(id => {
+          const select = document.getElementById(id);
+          if (select) {
+            const prevVal = select.value;
+            select.innerHTML = `
+              <option value="tgd">${window.roleNames.tgd || "Tổng Giám đốc"}</option>
+              <option value="gd">${window.roleNames.gd || "Giám đốc"}</option>
+              <option value="ql">${window.roleNames.ql || "Quản lý"}</option>
+              <option value="nv">${window.roleNames.nv || "Nhân viên"}</option>
+              <option value="kh">${window.roleNames.kh || "Khách hàng"}${ (window.roleNames.kh && window.roleNames.kh.includes("(0%)")) ? "" : " (0%)"}</option>
+            `;
+            if (prevVal && [...select.options].some(o => o.value === prevVal)) {
+              select.value = prevVal;
+            }
+          }
+        });
+      };
+      updateAllRankSelects();
+
+      const setRoleName = (idUi, idLbl, idOpt, lblComm, val) => {
         if (!val) return;
         const ui = document.getElementById(idUi);
         if (ui) ui.value = val;
@@ -415,15 +997,12 @@ if (true) {
         if (opt) opt.innerText = val;
         const comm = document.getElementById(lblComm);
         if (comm) comm.innerText = "HH " + val.toLowerCase();
-        const optUdr = document.getElementById(idUdrOpt);
-        if (optUdr) optUdr.innerText = val;
       };
       setRoleName(
         "role_name_tgd",
         null,
         "opt_tgd",
         "lbl_hh_tgd",
-        "udr_opt_tgd",
         data.tgd,
       );
       setRoleName(
@@ -431,7 +1010,6 @@ if (true) {
         "chk_lbl_gd",
         "opt_gd",
         "lbl_hh_gd",
-        "udr_opt_gd",
         data.gd,
       );
       setRoleName(
@@ -439,7 +1017,6 @@ if (true) {
         "chk_lbl_ql",
         "opt_ql",
         "lbl_hh_ql",
-        "udr_opt_ql",
         data.ql,
       );
       setRoleName(
@@ -447,11 +1024,381 @@ if (true) {
         "chk_lbl_nv",
         "opt_nv",
         "lbl_hh_nv",
-        "udr_opt_nv",
         data.nv,
       );
+      
+      if (typeof calculate === 'function') {
+          calculate();
+      }
+      if (typeof window.renderAgriDashboard === 'function') {
+          window.renderAgriDashboard();
+      }
+      if (typeof loadUsersList === 'function' && adminModal.style.display === "flex") {
+          loadUsersList();
+      }
     }
   }, (error) => console.error("Error reading roles config:", error));
+
+  // --- MODERN TEAM MANAGEMENT MODULE FEATURES ---
+  window.teamsMetadata = {};
+
+  // Real-time listener for team metadata configs
+  onSnapshot(doc(db, "configs", "teams_metadata"), (docSnap) => {
+    window.teamsMetadata = docSnap.exists() ? docSnap.data() : {};
+    if (typeof window.renderTeamsList === 'function') {
+      window.renderTeamsList();
+    }
+    if (typeof window.populateTeamSelectors === 'function') {
+      window.populateTeamSelectors();
+    }
+  }, (err) => console.error("Lỗi đồng bộ cấu hình đội nhóm:", err));
+
+  // Helper: Format number input as currency
+  const formatAsCurrency = (value) => {
+    if (!value) return "";
+    const clean = value.toString().replace(/\D/g, "");
+    return parseFloat(clean || 0).toLocaleString('vi-VN');
+  };
+
+  // Attach currency formatter on KPI input
+  setTimeout(() => {
+    const kpiInput = document.getElementById("team_modal_kpi");
+    if (kpiInput) {
+      kpiInput.addEventListener("input", (e) => {
+        const val = e.target.value;
+        const cursor = e.target.selectionStart;
+        const oldLen = val.length;
+        const formatted = formatAsCurrency(val);
+        e.target.value = formatted;
+        const newLen = formatted.length;
+        e.target.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
+      });
+    }
+
+    const searchInput = document.getElementById("team_search_input");
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        if (typeof window.renderTeamsList === 'function') {
+          window.renderTeamsList();
+        }
+      });
+    }
+  }, 1000);
+
+  // Open Team Modal for Create/Edit
+  window.openTeamModal = (teamName) => {
+    const modal = document.getElementById("team_modal");
+    if (!modal) return;
+
+    const titleEl = document.getElementById("team_modal_title");
+    const modeEl = document.getElementById("team_modal_mode");
+    const oldNameEl = document.getElementById("team_modal_old_name");
+    const nameEl = document.getElementById("team_modal_name");
+    const descEl = document.getElementById("team_modal_desc");
+    const kpiEl = document.getElementById("team_modal_kpi");
+    const leaderSelect = document.getElementById("team_modal_leader");
+    const errEl = document.getElementById("team_modal_error");
+
+    if (errEl) errEl.style.display = "none";
+
+    // Populate leader dropdown from window.usersDataList
+    if (leaderSelect) {
+      leaderSelect.innerHTML = `<option value="">-- Chọn trưởng nhóm --</option>`;
+      if (Array.isArray(window.usersDataList)) {
+        window.usersDataList.forEach(u => {
+          const name = u.displayName || u.email.split("@")[0];
+          leaderSelect.innerHTML += `<option value="${u.email}">${name} (${u.email})</option>`;
+        });
+      }
+    }
+
+    if (teamName) {
+      // Edit Mode
+      if (titleEl) titleEl.innerText = `⚙️ Thiết Lập Đội Nhóm: ${teamName}`;
+      if (modeEl) modeEl.value = "edit";
+      if (oldNameEl) oldNameEl.value = teamName;
+      if (nameEl) nameEl.value = teamName;
+
+      const meta = window.teamsMetadata?.[teamName] || {};
+      if (descEl) descEl.value = meta.description || "";
+      if (kpiEl) kpiEl.value = formatAsCurrency(meta.kpi || "");
+      if (leaderSelect) leaderSelect.value = meta.leader || "";
+    } else {
+      // Create Mode
+      if (titleEl) titleEl.innerText = "➕ Tạo Đội Nhóm Mới";
+      if (modeEl) modeEl.value = "create";
+      if (oldNameEl) oldNameEl.value = "";
+      if (nameEl) nameEl.value = "";
+      if (descEl) descEl.value = "";
+      if (kpiEl) kpiEl.value = "";
+      if (leaderSelect) leaderSelect.value = "";
+    }
+
+    modal.style.display = "flex";
+  };
+
+  // Delete Team Action
+  window.deleteTeam = async (teamName) => {
+    if (!confirm(`Bạn có chắc chắn muốn giải tán đội nhóm "${teamName}"?\nViệc này sẽ xóa mọi thiết lập mô tả, KPI và gỡ toàn bộ thành viên khỏi nhóm!`)) {
+      return;
+    }
+
+    try {
+      showToast("Đang xóa...", "info");
+      
+      // Update metadata
+      const newMeta = { ...window.teamsMetadata };
+      delete newMeta[teamName];
+      await setDoc(doc(db, "configs", "teams_metadata"), newMeta);
+
+      // Find and update all users currently in this team
+      if (Array.isArray(window.usersDataList)) {
+        const teamUsers = window.usersDataList.filter(u => u.luckyShopTeam === teamName);
+        const promises = teamUsers.map(u => 
+          updateDoc(doc(db, "users", u.id), { luckyShopTeam: "" })
+        );
+        await Promise.all(promises);
+      }
+
+      showToast(`Đã giải tán đội nhóm "${teamName}" thành công!`, "success");
+      if (typeof logAction === 'function') logAction("Giải tán đội nhóm", { teamName });
+    } catch (err) {
+      console.error(err);
+      showToast("Lỗi khi xóa đội nhóm: " + err.message, "error");
+    }
+  };
+
+  // Save/Update Team Metadata Event
+  const btnSaveTeamMetadata = document.getElementById("btn_save_team_metadata");
+  if (btnSaveTeamMetadata) {
+    btnSaveTeamMetadata.addEventListener("click", async () => {
+      const mode = document.getElementById("team_modal_mode")?.value || "create";
+      const oldName = document.getElementById("team_modal_old_name")?.value || "";
+      const name = (document.getElementById("team_modal_name")?.value || "").trim();
+      const desc = (document.getElementById("team_modal_desc")?.value || "").trim();
+      const kpi = (document.getElementById("team_modal_kpi")?.value || "").trim();
+      const leader = document.getElementById("team_modal_leader")?.value || "";
+      const errEl = document.getElementById("team_modal_error");
+
+      if (!name) {
+        if (errEl) {
+          errEl.innerText = "Vui lòng nhập tên đội nhóm!";
+          errEl.style.display = "block";
+        }
+        return;
+      }
+
+      btnSaveTeamMetadata.disabled = true;
+      btnSaveTeamMetadata.innerText = "Đang lưu...";
+
+      try {
+        const updatedMetadata = { ...window.teamsMetadata };
+        
+        if (mode === "edit" && oldName !== name) {
+          // Name changed - delete old key, add new key
+          delete updatedMetadata[oldName];
+          updatedMetadata[name] = { leader, description: desc, kpi };
+          
+          await setDoc(doc(db, "configs", "teams_metadata"), updatedMetadata);
+
+          // Update all users who were in the old team
+          if (Array.isArray(window.usersDataList)) {
+            const affectedUsers = window.usersDataList.filter(u => u.luckyShopTeam === oldName);
+            const promises = affectedUsers.map(u => 
+              updateDoc(doc(db, "users", u.id), { luckyShopTeam: name })
+            );
+            await Promise.all(promises);
+          }
+        } else {
+          // Standard create or update
+          updatedMetadata[name] = { leader, description: desc, kpi };
+          await setDoc(doc(db, "configs", "teams_metadata"), updatedMetadata);
+        }
+
+        showToast("Lưu thông tin đội nhóm thành công!", "success");
+        if (typeof logAction === 'function') {
+          logAction(mode === "edit" ? "Cập nhật đội nhóm" : "Tạo đội nhóm mới", { teamName: name, leader, kpi });
+        }
+        
+        const modal = document.getElementById("team_modal");
+        if (modal) modal.style.display = "none";
+      } catch (err) {
+        print(err);
+        if (errEl) {
+          errEl.innerText = "Lỗi: " + err.message;
+          errEl.style.display = "block";
+        }
+      } finally {
+        btnSaveTeamMetadata.disabled = false;
+        btnSaveTeamMetadata.innerText = "Lưu Đội Nhóm";
+      }
+    });
+  }
+
+  // Render Teams List function
+  window.renderTeamsList = () => {
+    const teamMgmtBody = document.getElementById("team_mgmt_table_body");
+    if (!teamMgmtBody) return;
+
+    const searchTerm = (document.getElementById("team_search_input")?.value || "").toLowerCase().trim();
+
+    // 1. Gather all team names from metadata + users list
+    const allTeamsSet = new Set();
+    Object.keys(window.teamsMetadata || {}).forEach(name => allTeamsSet.add(name));
+    
+    if (Array.isArray(window.usersDataList)) {
+      window.usersDataList.forEach(u => {
+        const team = (u.luckyShopTeam || "").trim();
+        if (team) allTeamsSet.add(team);
+      });
+    }
+
+    const allTeamNames = Array.from(allTeamsSet).sort();
+    
+    // Group users by team
+    const teamMembers = {};
+    allTeamNames.forEach(name => { teamMembers[name] = []; });
+
+    if (Array.isArray(window.usersDataList)) {
+      window.usersDataList.forEach(u => {
+        const team = (u.luckyShopTeam || "").trim();
+        if (team) {
+          teamMembers[team].push({
+            id: u.id,
+            email: u.email,
+            name: u.displayName || u.email.split("@")[0],
+            rank: u.defaultRank || "nv"
+          });
+        }
+      });
+    }
+
+    teamMgmtBody.innerHTML = "";
+    
+    let totalTeamsCount = 0;
+    let totalMembersCount = 0;
+    let totalKpiSum = 0;
+
+    // Filter and Render
+    const rowsToRender = [];
+
+    allTeamNames.forEach(teamName => {
+      const meta = window.teamsMetadata?.[teamName] || {};
+      const desc = meta.description || "";
+      const kpiStr = meta.kpi || "";
+      const kpiNum = parseFloat((kpiStr || "").replace(/\D/g, "")) || 0;
+      const leaderEmail = meta.leader || "";
+      
+      const members = teamMembers[teamName] || [];
+
+      // Find leader user name
+      let leaderDisplayName = "Chưa có";
+      if (leaderEmail) {
+        const leaderUser = window.usersDataList?.find(u => u.email === leaderEmail);
+        leaderDisplayName = leaderUser ? (leaderUser.displayName || leaderEmail) : leaderEmail;
+      }
+
+      // Check search filter
+      if (searchTerm) {
+        const matchesTeamName = teamName.toLowerCase().includes(searchTerm);
+        const matchesDesc = desc.toLowerCase().includes(searchTerm);
+        const matchesLeader = leaderDisplayName.toLowerCase().includes(searchTerm) || leaderEmail.toLowerCase().includes(searchTerm);
+        const matchesMembers = members.some(m => m.name.toLowerCase().includes(searchTerm) || m.email.toLowerCase().includes(searchTerm));
+        if (!matchesTeamName && !matchesDesc && !matchesLeader && !matchesMembers) {
+          return; // skip
+        }
+      }
+
+      totalTeamsCount++;
+      totalMembersCount += members.length;
+      totalKpiSum += kpiNum;
+
+      // Sort members so leader is shown first if leader is in member list
+      const sortedMembers = [...members].sort((a, b) => {
+        if (a.email === leaderEmail) return -1;
+        if (b.email === leaderEmail) return 1;
+        return 0;
+      });
+
+      rowsToRender.push({
+        teamName,
+        desc,
+        kpiStr,
+        leaderEmail,
+        leaderDisplayName,
+        members: sortedMembers
+      });
+    });
+
+    // Update statistics card text
+    const statTeamsEl = document.getElementById("team_stat_total_teams");
+    const statMembersEl = document.getElementById("team_stat_total_members");
+    const statKpiEl = document.getElementById("team_stat_total_kpi");
+
+    if (statTeamsEl) statTeamsEl.innerText = totalTeamsCount.toString();
+    if (statMembersEl) statMembersEl.innerText = totalMembersCount.toString();
+    if (statKpiEl) statKpiEl.innerText = totalKpiSum.toLocaleString('vi-VN') + " đ";
+
+    if (rowsToRender.length === 0) {
+      teamMgmtBody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #64748b; font-style: italic;">Không tìm thấy đội nhóm nào phù hợp.</td></tr>`;
+      return;
+    }
+
+    rowsToRender.forEach(row => {
+      const { teamName, desc, kpiStr, leaderEmail, leaderDisplayName, members } = row;
+      const tr = document.createElement("tr");
+
+      // Render rank badges beautifully
+      const membersHtml = members.map(m => {
+        let rankName = window.roleNames?.[m.rank] || m.rank;
+        let bg = "#e2e8f0";
+        let fg = "#334155";
+        if (m.rank === "tgd") { bg = "#fee2e2"; fg = "#991b1b"; }
+        else if (m.rank === "gd") { bg = "#dbeafe"; fg = "#1e40af"; }
+        else if (m.rank === "ql") { bg = "#fef3c7"; fg = "#92400e"; }
+        else if (m.rank === "nv") { bg = "#f1f5f9"; fg = "#475569"; }
+
+        const isLeadMarker = m.email === leaderEmail ? "👑 " : "";
+
+        return `<span style="display:inline-block; background: ${bg}; color: ${fg}; border-radius: 12px; padding: 2px 8px; font-size: 0.8rem; margin: 2px; font-weight: 500;">${isLeadMarker}${m.name} <strong>(${rankName})</strong></span>`;
+      }).join(" ");
+
+      const leaderHtml = leaderEmail 
+        ? `<div style="font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 4px;">👑 ${leaderDisplayName}</div><div style="font-size: 0.75rem; color: #64748b;">${leaderEmail}</div>`
+        : `<span style="color: #94a3b8; font-style: italic;">Chưa chỉ định</span>`;
+
+      tr.innerHTML = `
+        <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0;">
+          <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">${teamName}</div>
+          ${desc ? `<div style="font-size: 0.8rem; color: #64748b; margin-top: 2px; font-weight: 400; line-height: 1.3;">${desc}</div>` : ""}
+        </td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0;">${leaderHtml}</td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #10b981;">
+          ${kpiStr ? `${parseFloat(kpiStr.replace(/\D/g, "")).toLocaleString('vi-VN')} đ` : "0 đ"}
+        </td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+          <span style="background: #eff6ff; color: #2563eb; font-weight: 700; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem;">${members.length}</span>
+        </td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0;">
+          ${membersHtml || '<span style="color: #cbd5e1; font-style: italic; font-size: 0.85rem;">Trống</span>'}
+        </td>
+        <td style="padding: 12px 15px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+          <div style="display: flex; gap: 6px; justify-content: center;">
+            <button onclick="openTeamModal('${teamName}')" style="background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 3px; transition: background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+              ⚙️ Sửa
+            </button>
+            <button onclick="deleteTeam('${teamName}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 3px; transition: background 0.2s;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+              🗑️ Xóa
+            </button>
+          </div>
+        </td>
+      `;
+
+      teamMgmtBody.appendChild(tr);
+    });
+  };
+
+
 
   let usersDataList = [];
   const loadUsersList = () => {
@@ -461,15 +1408,20 @@ if (true) {
     const btnExportUsers = document.getElementById("btn_export_users");
     if (btnExportUsers) {
       btnExportUsers.onclick = () => {
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + "Email,Tên,Vai Trò,Trạng Thái,Tài khoản LS,Team\n";
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + "Email,Tên,Chức danh,Vai Trò,Trạng Thái,Tài khoản LS,Team\n";
         usersDataList.forEach(data => {
             const email = data.email || "";
             const name = data.displayName || "";
-            const role = data.role || "user";
+            const isSuperAdmin =
+              (email && email.toLowerCase() === "vinh.ngtienmdb@gmail.com") ||
+              (email && email.toLowerCase() === "admin@admin.com");
+            const rankKey = isSuperAdmin ? "tgd" : (data.defaultRank || "gd");
+            const rankName = window.roleNames?.[rankKey] || (rankKey === 'tgd' ? 'Tổng Giám Đốc' : rankKey);
+            const role = isSuperAdmin ? "Super Admin" : (data.role || "user");
             const status = data.status || "new";
             const lsAccount = data.luckyShopAccount || "";
             const lsTeam = data.luckyShopTeam || "";
-            csvContent += `"${email}","${name}","${role}","${status}","${lsAccount}","${lsTeam}"\n`;
+            csvContent += `"${email}","${name}","${rankName}","${role}","${status}","${lsAccount}","${lsTeam}"\n`;
         });
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -491,23 +1443,25 @@ if (true) {
         usersDataList.push(userData);
         const tr = document.createElement("tr");
         const isSuperAdmin =
-          data.email === "vinh.ngtienmdb@gmail.com" ||
-          data.email === "admin@admin.com";
+          (data.email && data.email.toLowerCase() === "vinh.ngtienmdb@gmail.com") ||
+          (data.email && data.email.toLowerCase() === "admin@admin.com");
 
         let selectHtml = "";
+        let rankHtml = "";
         let actionBtns = "";
         let nameHtml = "";
-        const fmtVND = (num) => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
+        
         let accountTeamHtml = `
-          <div style="font-size: 0.82em; color: #555;">LS: ${data.luckyShopAccount || '-'}</div>
-          <div style="font-size: 0.82em; color: #555;">Team: ${data.luckyShopTeam || '-'}</div>
-          ${(data.currentLuckyBalance !== undefined && data.currentLuckyBalance !== 0) ? `<div style="font-size: 0.81em; color: #16a34a; font-weight: 600; margin-top: 2px;">Dư: ${fmtVND(data.currentLuckyBalance)}</div>` : ''}
-          ${(data.luckyLimit !== undefined && data.luckyLimit !== 0) ? `<div style="font-size: 0.81em; color: #dc2626; font-weight: 600; margin-top: 1px;">Hạn mức: ${fmtVND(data.luckyLimit)}</div>` : ''}
+          <div style="font-weight: 600; color: #1e293b;">${data.luckyShopTeam || '<span style="color: #94a3b8; font-style: italic;">Chưa có</span>'}</div>
+          ${data.luckyShopAccount ? `<div style="font-size: 0.8em; color: #64748b; margin-top: 2px;">LS: ${data.luckyShopAccount}</div>` : ''}
         `;
         let statusHtml = "";
 
         if (isSuperAdmin) {
           selectHtml = `<span style="color: red; font-weight: bold;">Super Admin</span>`;
+          const sRank = data.defaultRank || "tgd";
+          const displayRankName = window.roleNames?.[sRank] || (sRank === 'tgd' ? 'Tổng Giám đốc' : sRank);
+          rankHtml = `<span style="color: #3b82f6; font-weight: bold;">${displayRankName}</span>`;
           nameHtml = data.displayName || "-";
           statusHtml = `<span style="color: #10b981; font-weight: bold;">Đã duyệt</span>`;
           actionBtns = `
@@ -516,12 +1470,25 @@ if (true) {
         } else {
           const isAdmin = data.role === "admin";
           const isBlocked = data.isBlocked === true;
+          const uRank = data.defaultRank || "gd";
+          
           selectHtml = `
-                        <select onchange="updateUserRole('${doc.id}', this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; width: 100%;">
-                            <option value="user" ${!isAdmin ? "selected" : ""}>Người dùng</option>
-                            <option value="admin" ${isAdmin ? "selected" : ""}>Admin</option>
-                        </select>
-                    `;
+            <select onchange="updateUserRole('${doc.id}', this.value)" style="padding: 6px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%; background: white; color: black; font-size: 0.85rem; font-weight: 500;">
+                <option value="user" ${!isAdmin ? "selected" : ""}>Người dùng</option>
+                <option value="admin" ${isAdmin ? "selected" : ""}>Admin</option>
+            </select>
+          `;
+          
+          rankHtml = `
+            <select onchange="updateUserRank('${doc.id}', this.value)" style="padding: 6px; border-radius: 4px; border: 1px solid #cbd5e1; width: 100%; background: white; color: black; font-size: 0.85rem; font-weight: 500;">
+                <option value="tgd" ${uRank === 'tgd' ? "selected" : ""}>${window.roleNames?.tgd || 'Tổng Giám đốc'}</option>
+                <option value="gd" ${uRank === 'gd' ? "selected" : ""}>${window.roleNames?.gd || 'Giám đốc'}</option>
+                <option value="ql" ${uRank === 'ql' ? "selected" : ""}>${window.roleNames?.ql || 'Quản lý'}</option>
+                <option value="nv" ${uRank === 'nv' ? "selected" : ""}>${window.roleNames?.nv || 'Nhân viên'}</option>
+                <option value="kh" ${uRank === 'kh' ? "selected" : ""}>${window.roleNames?.kh || 'Khách hàng'} (0%)</option>
+            </select>
+          `;
+          
           const blockBtnText = isBlocked ? "Mở chặn" : "Chặn";
           const blockBtnColor = isBlocked ? "#8b5cf6" : "#f59e0b";
           
@@ -545,793 +1512,364 @@ if (true) {
                 </div>
             </div>
           `;
-          nameHtml = `<input type="text" value="${data.displayName || ""}" onblur="updateUserName('${doc.id}', this.value)" style="padding: 4px; border: 1px solid #ccc; width: 100%; border-radius: 4px;">`;
+          nameHtml = `<input type="text" value="${data.displayName || ""}" onblur="updateUserName('${doc.id}', this.value)" style="padding: 6px; border: 1px solid #cbd5e1; width: 100%; border-radius: 4px; background: white; color: black; font-size: 0.85rem;">`;
         }
 
         tr.innerHTML = `
                     <td style="padding: 10px; border-bottom: 1px solid #eee; ${data.isBlocked ? 'text-decoration: line-through; color: #999;' : ''}">${data.email}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee;">${nameHtml}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee;">${accountTeamHtml}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${statusHtml}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${selectHtml}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${rankHtml}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${statusHtml}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${actionBtns}</td>
                 `;
         userMgmtTableBody.appendChild(tr);
       });
+      
+      // Update dynamic team select fields
+      if (typeof populateTeamSelectors === 'function') {
+        populateTeamSelectors();
+      }
+      
+      // Render Teams Table
+      window.usersDataList = usersDataList;
+      if (typeof window.renderTeamsList === 'function') {
+        window.renderTeamsList();
+      }
     }, (error) => console.error("Error loading users list:", error));
   };
 
-  window.editingUserId = null;
-  window.editUserDetail = (userId) => {
-    window.editingUserId = userId;
-    const targetUser = usersDataList.find(u => u.id === userId);
-    if (!targetUser) return;
-    
-    const modal = document.getElementById("edit_profile_modal");
-    if (modal) {
-      modal.style.display = "flex";
+
+
+  window.editProfileAccounts = [];
+  
+  window.renderEditProfileAccounts = () => {
+      const listEl = document.getElementById("edit_reg_accounts_list");
+      if (!listEl) return;
       
-      const modalTitle = modal.querySelector("h3");
-      if (modalTitle) {
-        modalTitle.innerText = `⚙️ Thiết Lập Tài Khoản: ${targetUser.email}`;
+      listEl.innerHTML = "";
+      if (window.editProfileAccounts.length === 0) {
+          listEl.innerHTML = `<div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>`;
+          return;
       }
       
-      const editTeam = document.getElementById("edit_profile_team");
-      const editCurrLixi = document.getElementById("edit_profile_curr_lixi");
-      const editLimit = document.getElementById("edit_profile_lucky_limit");
-      
-      if (editTeam) editTeam.value = targetUser.luckyShopTeam || "";
-      if (editCurrLixi) editCurrLixi.value = targetUser.currentLuckyBalance !== undefined ? targetUser.currentLuckyBalance : "";
-      if (editLimit) editLimit.value = targetUser.luckyLimit !== undefined ? targetUser.luckyLimit : "";
-      
-      const editInputEl = document.getElementById("edit_profile_lucky_account_input");
-      if (editInputEl) editInputEl.value = "";
-      
-      if (targetUser.luckyShopAccounts) {
-        editProfileAccounts = [...targetUser.luckyShopAccounts];
-      } else if (targetUser.luckyShopAccount) {
-        editProfileAccounts = targetUser.luckyShopAccount.split(",").map(s => s.trim()).filter(s => s !== "" && s !== "-");
-      } else {
-        editProfileAccounts = [];
-      }
-      renderEditAccountsList();
-      
-      const errDiv = document.getElementById("edit_profile_error");
-      if (errDiv) {
-          errDiv.style.display = "none";
-          errDiv.innerText = "";
-      }
-    }
-  };
-
-  window.updateUserRole = (userId, newRole) => {
-    if (!auth.currentUser || currentUserRole !== "admin") return;
-    updateDoc(doc(db, "users", userId), { role: newRole })
-      .then(() => {
-        showToast("Cập nhật quyền thành công!", "success");
-        logAction("Cập nhật quyền", { targetId: userId, role: newRole });
-      })
-      .catch((err) =>
-        showToast("Lỗi cập nhật quyền: " + err.message, "error"),
-      );
-  };
-
-  window.updateUserName = (userId, newName) => {
-    if (!auth.currentUser || currentUserRole !== "admin") return;
-    updateDoc(doc(db, "users", userId), { displayName: newName })
-      .then(() => {
-        showToast("Cập nhật tên thành công!", "success");
-        logAction("Cập nhật tên người dùng", { targetId: userId, name: newName });
-      })
-      .catch((err) =>
-        showToast("Lỗi cập nhật tên: " + err.message, "error"),
-      );
-  };
-
-  window.toggleBlockUser = (userId, currentStatus) => {
-    if (!auth.currentUser || currentUserRole !== "admin") return;
-    const actionStr = currentStatus ? "Mở chặn" : "Chặn";
-    if (confirm(`Bạn có chắc chắn muốn ${actionStr} user này không?`)) {
-      updateDoc(doc(db, "users", userId), { isBlocked: !currentStatus })
-        .then(() => {
-          showToast(`${actionStr} user thành công!`, "success");
-          logAction(actionStr + " người dùng", { targetId: userId });
-        })
-        .catch((err) =>
-          showToast(`Lỗi ${actionStr} user: ` + err.message, "error"),
-        );
-    }
-  };
-
-  window.deleteUser = (userId) => {
-    if (!auth.currentUser || currentUserRole !== "admin") return;
-    if (confirm("Bạn có chắc chắn muốn xóa user này không?")) {
-      deleteDoc(doc(db, "users", userId))
-        .then(() => {
-          showToast("Xóa user thành công!", "success");
-          logAction("Xóa người dùng", { targetId: userId });
-        })
-        .catch((err) =>
-          showToast("Lỗi xóa user: " + err.message, "error"),
-        );
-    }
-  };
-
-  window.approveUser = (userId, userEmail) => {
-    if (!auth.currentUser || currentUserRole !== "admin") return;
-    if (confirm("Phê duyệt cho người dùng này sử dụng hệ thống?")) {
-      updateDoc(doc(db, "users", userId), { status: "approved" })
-        .then(() => {
-           showToast("Phê duyệt thành công!", "success");
-           logAction("Phê duyệt người dùng", { targetEmail: userEmail });
-           addDoc(collection(db, "mail"), {
-              to: userEmail,
-              message: {
-                 subject: `[Lucky Shop] Tài khoản của bạn đã được phê duyệt`,
-                 html: `<p>Xin chào,</p><p>Tài khoản đại lý / thành viên của bạn đã được Admin phê duyệt thành công.</p><p>Bạn đã có thể đăng nhập và sử dụng hệ thống tính toán dòng tiền.</p>`
-              }
-           });
-        })
-        .catch((err) =>
-          showToast("Lỗi phê duyệt: " + err.message, "error"),
-        );
-    }
-  };
-
-  if (btnAddUser) {
-    btnAddUser.addEventListener("click", () => {
-      if (!auth.currentUser || currentUserRole !== "admin") return;
-      const email = newUserEmail.value.trim();
-      const name = newUserName.value.trim();
-      const role = newUserRole.value;
-      const accountVal = document.getElementById("new_user_account") ? document.getElementById("new_user_account").value.trim() : "";
-      const teamVal = document.getElementById("new_user_team") ? document.getElementById("new_user_team").value.trim() : "";
-      const balanceVal = document.getElementById("new_user_balance") ? parseFloat(document.getElementById("new_user_balance").value) : 0;
-      const limitVal = document.getElementById("new_user_limit") ? parseFloat(document.getElementById("new_user_limit").value) : 0;
-
-      if (!email) {
-        showToast("Vui lòng nhập Email", "error");
-        return;
-      }
-      addDoc(collection(db, "users"), {
-        email: email,
-        displayName: name,
-        role: role,
-        luckyShopAccount: accountVal,
-        luckyShopAccounts: accountVal ? [accountVal] : [],
-        luckyShopTeam: teamVal,
-        currentLuckyBalance: isNaN(balanceVal) ? 0 : balanceVal,
-        luckyLimit: isNaN(limitVal) ? 0 : limitVal,
-        createdAt: serverTimestamp(),
-        status: "approved",
-        isProfileComplete: true
-      })
-      .then(() => {
-        showToast("Thêm User thành công!", "success");
-        newUserEmail.value = "";
-        newUserName.value = "";
-        if (document.getElementById("new_user_account")) document.getElementById("new_user_account").value = "";
-        if (document.getElementById("new_user_team")) document.getElementById("new_user_team").value = "";
-        if (document.getElementById("new_user_balance")) document.getElementById("new_user_balance").value = "";
-        if (document.getElementById("new_user_limit")) document.getElementById("new_user_limit").value = "";
-      })
-      .catch((err) => showToast("Lỗi thêm user: " + err.message, "error"));
-    });
-  }
-
-  if (btnDoLoginEmail) {
-    btnDoLoginEmail.addEventListener("click", () => {
-      let email = loginEmailInput.value.trim();
-      const pwd = loginPwdInput.value;
-      if (!email || !pwd) {
-        loginError.innerText = "Vui lòng nhập đủ email và mật khẩu";
-        loginError.style.display = "block";
-        return;
-      }
-      if (!email.includes("@")) {
-        email = email + "@admin.com";
-      }
-      signInWithEmailAndPassword(auth, email, pwd)
-        .then(() => {
-          loginModal.style.display = "none";
-          loginError.style.display = "none";
-          loginEmailInput.value = "";
-          loginPwdInput.value = "";
-          logAction("Đăng nhập (Email)", { result: "success" });
-        })
-        .catch((error) => {
-          if (
-            error.code === "auth/user-not-found" ||
-            error.code === "auth/invalid-credential" ||
-            error.code === "auth/invalid-login-credentials"
-          ) {
-            // Create the user if not found/invalid credential (due to email enumeration protection)
-            createUserWithEmailAndPassword(auth, email, pwd)
-              .then(() => {
-                loginModal.style.display = "none";
-                loginError.style.display = "none";
-                loginEmailInput.value = "";
-                loginPwdInput.value = "";
-                logAction("Đăng ký thành viên mới", { result: "success" });
-              })
-              .catch((createError) => {
-                if (createError.code === "auth/email-already-in-use") {
-                  loginError.innerText = "Mật khẩu không đúng.";
-                } else if (createError.code === "auth/operation-not-allowed") {
-                  loginError.innerText =
-                    "Vui lòng bật 'Email/Password' trong Authentication của Firebase Console.";
-                } else {
-                  loginError.innerText =
-                    "Đăng ký thất bại: " + createError.message;
-                }
-                loginError.style.display = "block";
-              });
-          } else if (error.code === "auth/operation-not-allowed") {
-            loginError.innerText =
-              "Vui lòng bật 'Email/Password' trong Authentication của Firebase Console.";
-            loginError.style.display = "block";
-          } else {
-            loginError.innerText = "Đăng nhập thất bại: " + error.message;
-            loginError.style.display = "block";
-          }
-        });
-    });
-  }
-
-  if (btnDoLoginGoogle) {
-    btnDoLoginGoogle.addEventListener("click", () => {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider)
-        .then((result) => {
-          loginModal.style.display = "none";
-          loginError.style.display = "none";
-          logAction("Đăng nhập (Google)", { result: "success" });
-        })
-        .catch((error) => {
-          loginError.innerText = "Đăng nhập thất bại: " + error.message;
-          loginError.style.display = "block";
-        });
-    });
-  }
-
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-        logAction("Đăng xuất", {});
-        setTimeout(() => signOut(auth), 500);
-    });
-  }
-
-  onAuthStateChanged(auth, (user) => {
-    if (userSnapshotUnsub) {
-      userSnapshotUnsub();
-      userSnapshotUnsub = null;
-    }
-    if (agriStateUnsub) {
-      agriStateUnsub();
-      agriStateUnsub = null;
-    }
-    if (usersListUnsub) {
-      usersListUnsub();
-      usersListUnsub = null;
-    }
-    if (historyListUnsub) {
-      historyListUnsub();
-      historyListUnsub = null;
-    }
-     if (user) {
-       // Register or update user in Firestore
-      const userRef = doc(db, "users", user.uid);
-      getDoc(userRef).then(async (docSnap) => {
-        if (!docSnap.exists()) {
-          try {
-            const q = query(collection(db, "users"), where("email", "==", user.email));
-            const querySnapshot = await getDocs(q);
-            let preCreatedData = null;
-            let preCreatedDocId = null;
-            
-            querySnapshot.forEach((d) => {
-              if (d.id !== user.uid) {
-                preCreatedData = d.data();
-                preCreatedDocId = d.id;
-              }
-            });
-            
-            if (preCreatedData) {
-              await setDoc(userRef, {
-                ...preCreatedData,
-                updatedAt: serverTimestamp()
-              });
-              await deleteDoc(doc(db, "users", preCreatedDocId));
-              showToast("Đã đồng bộ tài khoản đại lý thành công!", "success");
-            } else {
-              const isSuperAdmin =
-                user.email === "vinh.ngtienmdb@gmail.com" ||
-                user.email === "admin@admin.com";
-              await setDoc(userRef, {
-                email: user.email,
-                displayName: user.displayName || user.email,
-                role: isSuperAdmin ? "admin" : "user",
-                createdAt: serverTimestamp(),
-                status: isSuperAdmin ? "approved" : "new",
-                isProfileComplete: isSuperAdmin ? true : false,
-              });
-            }
-          } catch (err) {
-            console.error("Lỗi liên kết tài khoản pre-created:", err);
-            const isSuperAdmin =
-              user.email === "vinh.ngtienmdb@gmail.com" ||
-              user.email === "admin@admin.com";
-            await setDoc(userRef, {
-              email: user.email,
-              displayName: user.displayName || user.email,
-              role: isSuperAdmin ? "admin" : "user",
-              createdAt: serverTimestamp(),
-              status: isSuperAdmin ? "approved" : "new",
-              isProfileComplete: isSuperAdmin ? true : false,
-            });
-          }
-        }
-      });
-
-      userSnapshotUnsub = onSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          currentUserData = data;
-
-          // Check limits and update warning banner
-          const cLixi = parseFloat(data.currentLuckyBalance) || 0;
-          const lLimit = parseFloat(data.luckyLimit) || 0;
-          const warningBanner = document.getElementById("limit_warning_banner");
-          const warningText = document.getElementById("limit_warning_text");
-          if (warningBanner && warningText) {
-              if (lLimit > 0 && cLixi > lLimit) {
-                  const formatVNDLocal = (num) => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
-                  warningText.innerHTML = `Số dư lì xì hiện tại (<strong>${formatVNDLocal(cLixi)}</strong>) đã vượt quá hạn mức quy định (<strong>${formatVNDLocal(lLimit)}</strong>)!`;
-                  warningBanner.style.display = "block";
-              } else {
-                  warningBanner.style.display = "none";
-              }
-          }
-
-          if (data.isBlocked) {
-            logAction("Bi khóa tài khoản", {});
-            setTimeout(() => signOut(auth), 500);
-            showToast("Tài khoản của bạn đã bị khóa.", "error");
-            return;
-          }
+      window.editProfileAccounts.forEach((acc, index) => {
+          const item = document.createElement("div");
+          item.style.display = "flex";
+          item.style.justifyContent = "space-between";
+          item.style.alignItems = "center";
+          item.style.padding = "6px 10px";
+          item.style.background = "white";
+          item.style.border = "1px solid #e2e8f0";
+          item.style.borderRadius = "4px";
           
-          const isSuperAdmin = user.email === "vinh.ngtienmdb@gmail.com" || user.email === "admin@admin.com";
-          let isApproved = false;
-          
-          if (!isSuperAdmin) {
-             if (!data.isProfileComplete) {
-                document.getElementById("profile_modal").style.display = "flex";
-                document.getElementById("main_dashboard").style.display = "none";
-                document.getElementById("require_login_overlay").style.display = "none";
-                document.getElementById("pending_modal").style.display = "none";
-             } else if (data.status === "pending" || !data.status || data.status === "new") {
-                document.getElementById("profile_modal").style.display = "none";
-                document.getElementById("pending_modal").style.display = "flex";
-                document.getElementById("main_dashboard").style.display = "none";
-                document.getElementById("require_login_overlay").style.display = "none";
-             } else if (data.status === "approved") {
-                isApproved = true;
-                document.getElementById("profile_modal").style.display = "none";
-                document.getElementById("pending_modal").style.display = "none";
-                if (typeof window.updateDashboardVisibility === "function") {
-                  window.updateDashboardVisibility();
-                } else {
-                  document.getElementById("main_dashboard").style.display = "";
-                }
-                document.getElementById("require_login_overlay").style.display = "none";
-             }
-          } else {
-             isApproved = true;
-             document.getElementById("profile_modal").style.display = "none";
-             document.getElementById("pending_modal").style.display = "none";
-             if (typeof window.updateDashboardVisibility === "function") {
-               window.updateDashboardVisibility();
-             } else {
-               document.getElementById("main_dashboard").style.display = "";
-             }
-             document.getElementById("require_login_overlay").style.display = "none";
-          }
-
-          currentUserRole = isSuperAdmin ? "admin" : data.role || "user";
-
-          const userDefaultRankSelect =
-            document.getElementById("user_default_rank");
-          if (
-            data.defaultRank &&
-            userDefaultRankSelect &&
-            userDefaultRankSelect.value !== data.defaultRank
-          ) {
-            userDefaultRankSelect.value = data.defaultRank;
-            const u_rank = document.getElementById("u_rank");
-            if (u_rank) {
-              u_rank.value = data.defaultRank;
-              if (typeof updateSubordinateVisibility === "function")
-                updateSubordinateVisibility();
-              if (typeof calculate === "function") calculate();
-            }
-            if (window.agriState) {
-              window.agriState.rank = data.defaultRank;
-              const selectRank = document.getElementById("calc_agri_rank");
-              if (selectRank) {
-                selectRank.value = data.defaultRank;
-              }
-              if (typeof window.renderAgriDashboard === "function") {
-                window.renderAgriDashboard();
-              }
-            }
-          }
-        } else {
-          currentUserRole =
-            user.email === "vinh.ngtienmdb@gmail.com" ||
-            user.email === "admin@admin.com"
-              ? "admin"
-              : "user";
-        }
-
-        if (btnLogin) btnLogin.style.display = "none";
-        if (btnLogout) btnLogout.style.display = "flex";
-        
-        const udrContainer = document.getElementById(
-          "user_default_rank_container",
-        );
-        if (udrContainer) udrContainer.style.display = "flex";
-
-        const isSuperAdmin = user.email === "vinh.ngtienmdb@gmail.com" || user.email === "admin@admin.com";
-
-        if (currentUserRole === "admin") {
-          if (btnAdminPanel) btnAdminPanel.style.display = isSuperAdmin ? "flex" : "none";
-          if (userInfoDisplay) {
-            userInfoDisplay.style.display = "block";
-            userInfoDisplay.innerText = isSuperAdmin
-                ? "Trạng thái: Super Admin"
-                : `Xin chào Admin: ${user.displayName || user.email}`;
-          }
-          if (adminToggle) {
-            adminToggle.checked = true;
-            if (typeof toggleAdminMode === "function") toggleAdminMode();
-          }
-        } else {
-          if (btnAdminPanel) btnAdminPanel.style.display = "none";
-          if (userInfoDisplay) {
-            userInfoDisplay.style.display = "block";
-            userInfoDisplay.innerText = `Xin chào: ${user.displayName || user.email}`;
-          }
-          if (adminToggle) {
-            adminToggle.checked = false;
-            if (typeof toggleAdminMode === "function") toggleAdminMode();
-          }
-        }
-      }, (error) => console.error("Error reading user data:", error));
-
-      const agriRef = doc(db, "agri_states", user.uid);
-      agriStateUnsub = onSnapshot(agriRef, (docSnap) => {
-        if (docSnap.exists() && window.agriState) {
-          const data = docSnap.data();
-          if (data.selectedProductId !== undefined) window.agriState.selectedProductId = data.selectedProductId;
-          if (data.customProduct !== undefined) window.agriState.customProduct = { ...window.agriState.customProduct, ...data.customProduct };
-          if (data.qty !== undefined) window.agriState.qty = data.qty;
-          if (data.option !== undefined) window.agriState.option = data.option;
-          if (data.resaleUnitPrice !== undefined) window.agriState.resaleUnitPrice = data.resaleUnitPrice;
-          if (data.resaleFeePercent !== undefined) window.agriState.resaleFeePercent = data.resaleFeePercent;
-          if (data.resaleSellGift !== undefined) window.agriState.resaleSellGift = data.resaleSellGift;
-          if (data.rank !== undefined) {
-            window.agriState.rank = data.rank;
-            const udr = document.getElementById("user_default_rank");
-            if (udr && udr.value !== data.rank) {
-              udr.value = data.rank;
-              const u_rank = document.getElementById("u_rank");
-              if (u_rank) {
-                u_rank.value = data.rank;
-                if (typeof updateSubordinateVisibility === "function")
-                  updateSubordinateVisibility();
-                if (typeof calculate === "function") calculate();
-              }
-            }
-          }
-          if (data.personalSales !== undefined) window.agriState.personalSales = data.personalSales;
-          if (data.f1Sales !== undefined) window.agriState.f1Sales = data.f1Sales;
-          if (data.otherGroupSales !== undefined) window.agriState.otherGroupSales = data.otherGroupSales;
-          if (data.f1Network !== undefined) window.agriState.f1Network = data.f1Network;
-          
-          if (typeof window.renderAgriDashboard === "function") {
-            window.renderAgriDashboard();
-          }
-        }
-      }, (error) => {
-        console.error("Lỗi đồng bộ dữ liệu Nông Sản:", error);
+          item.innerHTML = `
+              <span style="font-size: 0.9rem; font-weight: 500; color: #334155;">${acc}</span>
+              <button type="button" onclick="window.removeEditProfileAccount(${index})" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 0 5px; line-height: 1;">&times;</button>
+          `;
+          listEl.appendChild(item);
       });
-    } else {
-      currentUserRole = "user";
-      const requireLoginOverlay = document.getElementById("require_login_overlay");
-      if (requireLoginOverlay) requireLoginOverlay.style.display = "flex";
-      const profileModal = document.getElementById("profile_modal");
-      if (profileModal) profileModal.style.display = "none";
-      const pendingModal = document.getElementById("pending_modal");
-      if (pendingModal) pendingModal.style.display = "none";
-      if(mainDashboard) mainDashboard.style.display = "none";
-      if(document.getElementById("agri_dashboard")) document.getElementById("agri_dashboard").style.display = "none";
-      if(document.getElementById("main_module_switcher")) document.getElementById("main_module_switcher").style.display = "none";
-
-      if (btnLogin) btnLogin.style.display = "flex";
-      if (btnLogout) btnLogout.style.display = "none";
-      
-
-      const warningBanner = document.getElementById("limit_warning_banner");
-      if (warningBanner) warningBanner.style.display = "none";
-
-      if (btnAdminPanel) btnAdminPanel.style.display = "none";
-
-      if (userInfoDisplay) userInfoDisplay.style.display = "none";
-
-      const udrContainer = document.getElementById(
-        "user_default_rank_container",
-      );
-      if (udrContainer) udrContainer.style.display = "none";
-
-      if (adminToggle) {
-        adminToggle.checked = false;
-        if (typeof toggleAdminMode === "function") toggleAdminMode();
-      }
-    }
-  });
-
-  let registrationAccounts = [];
-  const renderRegAccountsList = () => {
-    const listEl = document.getElementById("reg_accounts_list");
-    if (!listEl) return;
-    if (registrationAccounts.length === 0) {
-      listEl.innerHTML = `<div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>`;
-      return;
-    }
-    listEl.innerHTML = "";
-    registrationAccounts.forEach((acc, idx) => {
-      const row = document.createElement("div");
-      row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem; font-weight: 500;";
-      row.innerHTML = `
-        <span style="color: #334155; word-break: break-all;">${acc}</span>
-        <button type="button" class="btn-remove-reg-acc" data-index="${idx}" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 2px 6px; line-height: 1;">&times;</button>
-      `;
-      listEl.appendChild(row);
-    });
-
-    listEl.querySelectorAll(".btn-remove-reg-acc").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const idx = parseInt(e.target.getAttribute("data-index"));
-        registrationAccounts.splice(idx, 1);
-        renderRegAccountsList();
-      });
-    });
   };
 
-  let editProfileAccounts = [];
-  const renderEditAccountsList = () => {
-    const listEl = document.getElementById("edit_reg_accounts_list");
-    if (!listEl) return;
-    if (editProfileAccounts.length === 0) {
-      listEl.innerHTML = `<div style="font-size: 0.85rem; color: #94a3b8; text-align: center; font-style: italic; padding: 4px 0;">Chưa thêm tài khoản nào. Vui lòng nhập ở dưới và bấm Thêm.</div>`;
-      return;
-    }
-    listEl.innerHTML = "";
-    editProfileAccounts.forEach((acc, idx) => {
-      const row = document.createElement("div");
-      row.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem; font-weight: 500;";
-      row.innerHTML = `
-        <span style="color: #334155; word-break: break-all;">${acc}</span>
-        <button type="button" class="btn-remove-edit-acc" data-index="${idx}" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 2px 6px; line-height: 1;">&times;</button>
-      `;
-      listEl.appendChild(row);
-    });
-
-    listEl.querySelectorAll(".btn-remove-edit-acc").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const idx = parseInt(e.target.getAttribute("data-index"));
-        editProfileAccounts.splice(idx, 1);
-        renderEditAccountsList();
-      });
-    });
+  window.removeEditProfileAccount = (index) => {
+      window.editProfileAccounts.splice(index, 1);
+      window.renderEditProfileAccounts();
   };
-
-  const btnAddRegAccount = document.getElementById("btn_add_reg_account");
-  if (btnAddRegAccount) {
-    btnAddRegAccount.addEventListener("click", () => {
-      const inputEl = document.getElementById("profile_lucky_account_input");
-      if (!inputEl) return;
-      const val = inputEl.value.trim();
-      if (!val) {
-        showToast("Vui lòng nhập tên tài khoản", "error");
-        return;
-      }
-      if (registrationAccounts.includes(val)) {
-        showToast("Tài khoản này đã được thêm", "error");
-        return;
-      }
-      registrationAccounts.push(val);
-      inputEl.value = "";
-      renderRegAccountsList();
-    });
-  }
 
   const btnAddEditAccount = document.getElementById("btn_add_edit_account");
   if (btnAddEditAccount) {
-    btnAddEditAccount.addEventListener("click", () => {
-      const inputEl = document.getElementById("edit_profile_lucky_account_input");
-      if (!inputEl) return;
-      const val = inputEl.value.trim();
-      if (!val) {
-        showToast("Vui lòng nhập tên tài khoản", "error");
-        return;
-      }
-      if (editProfileAccounts.includes(val)) {
-        showToast("Tài khoản này đã được thêm", "error");
-        return;
-      }
-      editProfileAccounts.push(val);
-      inputEl.value = "";
-      renderEditAccountsList();
-    });
+      btnAddEditAccount.addEventListener("click", () => {
+          const inputEl = document.getElementById("edit_profile_lucky_account_input");
+          const val = inputEl.value.trim();
+          if (val) {
+              if (!window.editProfileAccounts.includes(val)) {
+                  window.editProfileAccounts.push(val);
+                  window.renderEditProfileAccounts();
+              }
+              inputEl.value = "";
+          }
+      });
   }
 
-  const setupEnterToAddAccount = (inputId, btnId) => {
-    const inputEl = document.getElementById(inputId);
-    const btnEl = document.getElementById(btnId);
-    if (inputEl && btnEl) {
-      inputEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          btnEl.click();
-        }
-      });
+  window.updateUserRole = async (userId, newRole) => {
+    try {
+      await updateDoc(doc(db, "users", userId), { role: newRole });
+      showToast("Cập nhật quyền thành công", "success");
+      if (typeof logAction === 'function') logAction("Đổi quyền user", { targetUser: userId, newRole });
+    } catch (e) {
+      console.error(e);
+      showToast("Lỗi khi cập nhật quyền", "error");
     }
   };
 
-  setupEnterToAddAccount("profile_lucky_account_input", "btn_add_reg_account");
-  setupEnterToAddAccount("edit_profile_lucky_account_input", "btn_add_edit_account");
+  window.updateUserRank = async (userId, newRank) => {
+    try {
+      await updateDoc(doc(db, "users", userId), { defaultRank: newRank });
+      showToast("Cập nhật cấp bậc thành công", "success");
+      if (typeof logAction === 'function') logAction("Đổi cấp bậc user", { targetUser: userId, newRank });
+    } catch (e) {
+      console.error(e);
+      showToast("Lỗi khi cập nhật cấp bậc", "error");
+    }
+  };
 
-  const btnSubmitProfile = document.getElementById("btn_submit_profile");
-  if (btnSubmitProfile) {
-    btnSubmitProfile.addEventListener("click", () => {
-      if(!auth.currentUser) return;
-      const team = document.getElementById("profile_team").value.trim();
-      const errEl = document.getElementById("profile_error");
-      
-      // Auto-add any current typed input
-      const inputEl = document.getElementById("profile_lucky_account_input");
-      if (inputEl && inputEl.value.trim()) {
-        const val = inputEl.value.trim();
-        if (!registrationAccounts.includes(val)) {
-          registrationAccounts.push(val);
-          inputEl.value = "";
-        }
+  window.toggleBlockUser = async (userId, isBlocked) => {
+    try {
+      await updateDoc(doc(db, "users", userId), { isBlocked: !isBlocked });
+      showToast(isBlocked ? "Đã mở chặn user" : "Đã chặn user", "success");
+      if (typeof logAction === 'function') logAction(isBlocked ? "Mở chặn user" : "Chặn user", { targetUser: userId });
+    } catch (e) {
+      console.error(e);
+      showToast("Lỗi khi thay đổi trạng thái chặn", "error");
+    }
+  };
+
+  window.deleteUser = async (userId) => {
+    if (confirm("Bạn có chắc chắn muốn xóa user này không?")) {
+      try {
+        await deleteDoc(doc(db, "users", userId));
+        showToast("Đã xóa user thành công", "success");
+        if (typeof logAction === 'function') logAction("Xóa user", { targetUser: userId });
+      } catch (e) {
+        console.error(e);
+        showToast("Lỗi khi xóa user", "error");
       }
-      renderRegAccountsList();
-      
-      if(registrationAccounts.length === 0 || !team) {
-         errEl.innerText = "Vui lòng thêm ít nhất một tài khoản và nhập tên Team.";
-         errEl.style.display = "block";
-         return;
-      }
-      errEl.style.display = "none";
-      btnSubmitProfile.innerText = "Đang gửi...";
-      btnSubmitProfile.disabled = true;
-      
-      const accountStr = registrationAccounts.join(", ");
-      const userRef = doc(db, "users", auth.currentUser.uid);
-      updateDoc(userRef, {
-         luckyShopAccount: accountStr,
-         luckyShopAccounts: registrationAccounts,
-         luckyShopTeam: team,
-         isProfileComplete: true,
-         status: "pending"
-      }).then(() => {
-         // Yêu cầu tự động gửi mail
-         addDoc(collection(db, "mail"), {
-            to: "vinh.ngtienmdb@gmail.com",
-            message: {
-               subject: `[Lucky Shop] Yêu cầu phê duyệt mới từ: ${auth.currentUser.email}`,
-               html: `<p>Có người dùng mới yêu cầu phê duyệt sử dụng hệ thống.</p>
-                      <ul>
-                        <li>Email: ${auth.currentUser.email}</li>
-                        <li>Tên: ${auth.currentUser.displayName || ''}</li>
-                        <li>Tài khoản Lucky Shop: ${accountStr}</li>
-                        <li>Team: ${team}</li>
-                      </ul>
-                      <p>Vui lòng đăng nhập hệ thống để phê duyệt cho User này.</p>`
-            }
-         });
-         logAction("Gửi yêu cầu phê duyệt", { luckyShopAccount: accountStr, luckyShopAccounts: registrationAccounts, luckyShopTeam: team });
-         btnSubmitProfile.innerText = "Gửi yêu cầu phê duyệt";
-         btnSubmitProfile.disabled = false;
-         showToast("Đã gửi yêu cầu thành công!", "success");
-      }).catch(e => {
-         errEl.innerText = "Lỗi gửi yêu cầu: " + e.message;
-         errEl.style.display = "block";
-         btnSubmitProfile.innerText = "Gửi yêu cầu phê duyệt";
-         btnSubmitProfile.disabled = false;
+    }
+  };
+
+  window.approveUser = async (userId, email) => {
+    try {
+      await updateDoc(doc(db, "users", userId), { status: "approved" });
+      showToast("Đã duyệt user thành công", "success");
+      if (typeof logAction === 'function') logAction("Phê duyệt user", { targetUser: userId, email });
+    } catch (e) {
+      console.error(e);
+      showToast("Lỗi khi duyệt user", "error");
+    }
+  };
+
+  window.updateUserName = async (userId, newName) => {
+    try {
+      await updateDoc(doc(db, "users", userId), { displayName: newName });
+      showToast("Cập nhật tên thành công", "success");
+      if (typeof logAction === 'function') logAction("Đổi tên user", { targetUser: userId, newName });
+    } catch (e) {
+      console.error(e);
+      showToast("Lỗi khi cập nhật tên", "error");
+    }
+  };
+
+  window.editingUserId = null;
+
+  // Function to populate Team selectors from unique values in usersDataList and teamsMetadata
+  const populateTeamSelectors = () => {
+    const teamsSet = new Set();
+    
+    // Add all teams from window.teamsMetadata
+    if (window.teamsMetadata) {
+      Object.keys(window.teamsMetadata).forEach(team => {
+        const cleaned = (team || "").trim();
+        if (cleaned) teamsSet.add(cleaned);
       });
-    });
-  }
+    }
 
-  const btnLogoutFromPending = document.getElementById("btn_logout_from_pending");
-  if (btnLogoutFromPending) {
-    btnLogoutFromPending.addEventListener("click", () => {
-        logAction("Đăng xuất", { from: "pending state" });
-        setTimeout(() => signOut(auth), 500);
-    });
-  }
+    // Add all teams from usersDataList
+    if (Array.isArray(usersDataList)) {
+      usersDataList.forEach(u => {
+        const team = (u.luckyShopTeam || "").trim();
+        if (team) teamsSet.add(team);
+      });
+    }
+    const teams = Array.from(teamsSet).sort();
 
+    // Populate new_user_team_select
+    const newUserTeamSelect = document.getElementById("new_user_team_select");
+    if (newUserTeamSelect) {
+      const prevVal = newUserTeamSelect.value;
+      newUserTeamSelect.innerHTML = `
+        <option value="">-- Chưa có / Không có nhóm --</option>
+        ${teams.map(t => `<option value="${t}">${t}</option>`).join("")}
+        <option value="__new__">+ Tạo đội nhóm mới...</option>
+      `;
+      if (prevVal && [...newUserTeamSelect.options].some(o => o.value === prevVal)) {
+        newUserTeamSelect.value = prevVal;
+      }
+    }
 
+    // Populate edit_profile_team_select
+    const editProfileTeamSelect = document.getElementById("edit_profile_team_select");
+    if (editProfileTeamSelect) {
+      const prevVal = editProfileTeamSelect.value;
+      editProfileTeamSelect.innerHTML = `
+        <option value="">-- Chưa có / Không có nhóm --</option>
+        ${teams.map(t => `<option value="${t}">${t}</option>`).join("")}
+        <option value="__new__">+ Tạo đội nhóm mới...</option>
+      `;
+      if (prevVal && [...editProfileTeamSelect.options].some(o => o.value === prevVal)) {
+        editProfileTeamSelect.value = prevVal;
+      }
+    }
+  };
+
+  // Expose it globally so it can be called from snap callback
+  window.populateTeamSelectors = populateTeamSelectors;
+
+  // Add listeners for dynamically toggling new team name inputs
+  setTimeout(() => {
+    const newUserTeamSelect = document.getElementById("new_user_team_select");
+    const newUserTeamText = document.getElementById("new_user_team_text");
+    if (newUserTeamSelect && newUserTeamText) {
+      newUserTeamSelect.addEventListener("change", () => {
+        if (newUserTeamSelect.value === "__new__") {
+          newUserTeamText.style.display = "block";
+          newUserTeamText.focus();
+        } else {
+          newUserTeamText.style.display = "none";
+        }
+      });
+    }
+
+    const editProfileTeamSelect = document.getElementById("edit_profile_team_select");
+    const editProfileTeamText = document.getElementById("edit_profile_team_text");
+    if (editProfileTeamSelect && editProfileTeamText) {
+      editProfileTeamSelect.addEventListener("change", () => {
+        if (editProfileTeamSelect.value === "__new__") {
+          editProfileTeamText.style.display = "block";
+          editProfileTeamText.focus();
+        } else {
+          editProfileTeamText.style.display = "none";
+        }
+      });
+    }
+  }, 1000);
+
+  window.editUserDetail = (userId) => {
+    try {
+        console.log("editUserDetail called with userId:", userId);
+        window.editingUserId = userId;
+        let targetUser = usersDataList.find(u => u.id === userId);
+        if (!targetUser && auth.currentUser && userId === auth.currentUser.uid && currentUserData) {
+            targetUser = {
+                id: auth.currentUser.uid,
+                email: auth.currentUser.email,
+                displayName: currentUserData.displayName || "",
+                luckyShopAccount: currentUserData.luckyShopAccount || "",
+                role: currentUserData.role || "user",
+                defaultRank: currentUserData.defaultRank || "gd",
+                luckyShopTeam: currentUserData.luckyShopTeam || ""
+            };
+        }
+        if (!targetUser) {
+            console.error("targetUser not found in usersDataList and no local fallback");
+            return;
+        }
+        
+        console.log("targetUser found:", targetUser);
+        const modal = document.getElementById("edit_profile_modal");
+        if (modal) {
+          modal.style.display = "flex";
+          
+          const modalTitle = modal.querySelector("h3");
+          if (modalTitle) {
+            modalTitle.innerText = `⚙️ Thiết Lập Tài Khoản: ${targetUser.email || userId}`;
+          }
+          
+          const editName = document.getElementById("edit_profile_name");
+          if (editName) editName.value = targetUser.displayName || "";
+
+          const editLsAccount = document.getElementById("edit_profile_ls_account");
+          if (editLsAccount) editLsAccount.value = targetUser.luckyShopAccount || "";
+
+          const editRole = document.getElementById("edit_profile_role");
+          if (editRole) {
+              editRole.value = targetUser.role || "user";
+              if (currentUserRole !== "admin") {
+                  editRole.disabled = true;
+              } else {
+                  editRole.disabled = false;
+              }
+          }
+
+          const editRank = document.getElementById("edit_profile_rank");
+          if (editRank) editRank.value = targetUser.defaultRank || "gd";
+
+          // Pre-populate teams options
+          populateTeamSelectors();
+
+          const editTeamSelect = document.getElementById("edit_profile_team_select");
+          const editTeamText = document.getElementById("edit_profile_team_text");
+          if (editTeamSelect) {
+            const teamVal = targetUser.luckyShopTeam || "";
+            const options = Array.from(editTeamSelect.options).map(o => o.value);
+            if (teamVal === "") {
+              editTeamSelect.value = "";
+              if (editTeamText) {
+                editTeamText.style.display = "none";
+                editTeamText.value = "";
+              }
+            } else if (options.includes(teamVal)) {
+              editTeamSelect.value = teamVal;
+              if (editTeamText) {
+                editTeamText.style.display = "none";
+                editTeamText.value = "";
+              }
+            } else {
+              editTeamSelect.value = "__new__";
+              if (editTeamText) {
+                editTeamText.style.display = "block";
+                editTeamText.value = teamVal;
+              }
+            }
+          }
+        } else {
+            console.error("edit_profile_modal not found in DOM");
+        }
+    } catch(e) {
+        console.error("Error in editUserDetail:", e);
+    }
+  };
 
   const btnSaveEditProfile = document.getElementById("btn_save_edit_profile");
   if (btnSaveEditProfile) {
     btnSaveEditProfile.addEventListener("click", async () => {
-      const editTeam = document.getElementById("edit_profile_team");
-      const editCurrLixi = document.getElementById("edit_profile_curr_lixi");
-      const editLimit = document.getElementById("edit_profile_lucky_limit");
+      if (!window.editingUserId) return;
+      
+      btnSaveEditProfile.disabled = true;
+      btnSaveEditProfile.innerText = "Đang lưu...";
       const errDiv = document.getElementById("edit_profile_error");
-      
-      const team = editTeam ? editTeam.value.trim() : "";
-      const currLixi = editCurrLixi ? parseFloat(editCurrLixi.value) : 0;
-      const limit = editLimit ? parseFloat(editLimit.value) : 0;
-      
-      // Auto-add any current typed input
-      const editInputEl = document.getElementById("edit_profile_lucky_account_input");
-      if (editInputEl && editInputEl.value.trim()) {
-        const val = editInputEl.value.trim();
-        if (!editProfileAccounts.includes(val)) {
-          editProfileAccounts.push(val);
-          editInputEl.value = "";
-        }
-      }
-      renderEditAccountsList();
-      
-      if (editProfileAccounts.length === 0) {
-          if (errDiv) {
-              errDiv.innerText = "Vui lòng thêm ít nhất một tài khoản Lucky Shop.";
-              errDiv.style.display = "block";
-          }
-          return;
-      }
-      if (!team) {
-          if (errDiv) {
-              errDiv.innerText = "Vui lòng nhập tên Team.";
-              errDiv.style.display = "block";
-          }
-          return;
-      }
+      if (errDiv) errDiv.style.display = "none";
       
       try {
-          if (auth.currentUser) {
-              btnSaveEditProfile.disabled = true;
-              btnSaveEditProfile.innerText = "Đang xử lý...";
-              
-              const targetUid = window.editingUserId || auth.currentUser.uid;
-              const accountStr = editProfileAccounts.join(", ");
-              await updateDoc(doc(db, "users", targetUid), {
-                  luckyShopAccount: accountStr,
-                  luckyShopAccounts: editProfileAccounts,
-                  luckyShopTeam: team,
-                  currentLuckyBalance: isNaN(currLixi) ? 0 : currLixi,
-                  luckyLimit: isNaN(limit) ? 0 : limit,
-              });
-              
-              logAction("Cập nhật thiết lập tài khoản", { 
-                  targetUid: targetUid,
-                  luckyShopAccount: accountStr,
-                  luckyShopAccounts: editProfileAccounts, 
-                  luckyShopTeam: team, 
-                  currentLuckyBalance: isNaN(currLixi) ? 0 : currLixi, 
-                  luckyLimit: isNaN(limit) ? 0 : limit 
-              });
-              
-              showToast("Cập nhật tài khoản thành công!", "success");
-              document.getElementById("edit_profile_modal").style.display = "none";
-              window.editingUserId = null;
+          const name = document.getElementById("edit_profile_name") ? document.getElementById("edit_profile_name").value.trim() : "";
+          const lsAccount = document.getElementById("edit_profile_ls_account") ? document.getElementById("edit_profile_ls_account").value.trim() : "";
+          const role = document.getElementById("edit_profile_role") ? document.getElementById("edit_profile_role").value : "user";
+          const rank = document.getElementById("edit_profile_rank") ? document.getElementById("edit_profile_rank").value : "gd";
+          
+          const teamSelect = document.getElementById("edit_profile_team_select");
+          let team = "";
+          if (teamSelect) {
+            if (teamSelect.value === "__new__") {
+              const teamText = document.getElementById("edit_profile_team_text");
+              team = teamText ? teamText.value.trim() : "";
+            } else {
+              team = teamSelect.value;
+            }
           }
+          
+          const docRef = doc(db, "users", window.editingUserId);
+          await updateDoc(docRef, {
+              displayName: name,
+              luckyShopAccount: lsAccount,
+              luckyShopAccounts: lsAccount ? [lsAccount] : [],
+              role: role,
+              defaultRank: rank,
+              luckyShopTeam: team
+          });
+          
+          showToast("Cập nhật tài khoản thành công!", "success");
+          const epm = document.getElementById("edit_profile_modal"); if(epm) epm.style.display = "none";
+          window.editingUserId = null;
       } catch (err) {
           console.error(err);
           if (errDiv) {
@@ -1339,15 +1877,13 @@ if (true) {
               errDiv.style.display = "block";
           }
       } finally {
-          if (btnSaveEditProfile) {
-              btnSaveEditProfile.disabled = false;
-              btnSaveEditProfile.innerText = "Áp dụng";
-          }
+          btnSaveEditProfile.disabled = false;
+          btnSaveEditProfile.innerText = "Áp dụng";
       }
     });
   }
 
-  // --- PRODUCT MANAGEMENT FEATURE ---
+    // --- PRODUCT MANAGEMENT FEATURE ---
   let productsListUnsub = null;
   let globalProductsList = [];
 
@@ -1741,7 +2277,7 @@ if (true) {
           document.getElementById("pm_agri_p_bulk_buy").value = prod.bulkPromo.buy;
           document.getElementById("pm_agri_p_bulk_gift").value = prod.bulkPromo.gift;
           document.getElementById("pm_agri_form_title").textContent = "✏️ Sửa sản phẩm nông sản";
-          document.getElementById("btn_pm_agri_cancel").style.display = "inline-block";
+          const bpmac = document.getElementById("btn_pm_agri_cancel"); if(bpmac) bpmac.style.display = "inline-block";
           document.getElementById("pm_agri_p_name").focus();
         }
       });
@@ -1920,6 +2456,7 @@ if (true) {
       setVal("p_b_rate5", data.p_b_rate5);
       setVal("p_b_rate6", data.p_b_rate6);
       setVal("p_b_rate7", data.p_b_rate7);
+      setVal("p_defaultUserRank", data.p_defaultUserRank || "gd");
       setVal("p_dailyLuckyRate", data.p_dailyLuckyRate);
       setVal("p_luckyMul", data.p_luckyMul);
       if (data.p_moneyToTicketRate !== undefined) setVal("p_moneyToTicketRate", data.p_moneyToTicketRate);
@@ -1959,7 +2496,7 @@ if (true) {
       btnPreviewPromo.addEventListener("click", () => {
           window.isPromoPreviewActive = true;
           calculate(); // Triggers config application and shows UI
-          const adminModalEl = document.getElementById('admin_modal');
+          const adminModalEl = document.getElementById('admin_dashboard');
           if (adminModalEl) adminModalEl.style.display = 'none'; // Close admin config temporarily
       });
   }
@@ -1997,6 +2534,7 @@ if (true) {
         p_b_rate5: getVal("p_b_rate5"),
         p_b_rate6: getVal("p_b_rate6"),
         p_b_rate7: getVal("p_b_rate7"),
+        p_defaultUserRank: document.getElementById("p_defaultUserRank") ? document.getElementById("p_defaultUserRank").value : "gd",
         p_dailyLuckyRate: getVal("p_dailyLuckyRate"),
         p_luckyMul: getVal("p_luckyMul"),
         p_moneyToTicketRate: getVal("p_moneyToTicketRate"),
@@ -2734,9 +3272,33 @@ const calculate = () => {
 };
 
 // UI Logic for User Mode
-const updateSubordinateVisibility = () => {
+function updateSubordinateVisibility() {
   if (!inputs.u_rank) return;
   const rank = inputs.u_rank.value;
+
+  // Synchronize other elements
+  const editRankEl = document.getElementById("edit_profile_rank");
+  if (editRankEl && editRankEl.value !== rank) {
+      editRankEl.value = rank;
+  }
+  const calcRankEl = document.getElementById("calc_agri_rank");
+  if (calcRankEl && calcRankEl.value !== rank) {
+      calcRankEl.value = rank;
+  }
+  if (window.agriState && window.agriState.rank !== rank) {
+      window.agriState.rank = rank;
+      if (typeof window.renderAgriDashboard === "function") {
+          window.renderAgriDashboard();
+      }
+  }
+
+  // Sync to database if logged-in user has a different rank in Firestore
+  if (auth.currentUser && currentUserData && currentUserData.defaultRank !== rank) {
+      currentUserData.defaultRank = rank; // Update locally too to prevent redundant updates
+      const docRef = doc(db, "users", auth.currentUser.uid);
+      updateDoc(docRef, { defaultRank: rank }).catch(err => console.error("Error updating defaultRank:", err));
+  }
+
   const gdChk = document.getElementById("u_chk_gd");
   const qlChk = document.getElementById("u_chk_ql");
   const nvChk = document.getElementById("u_chk_nv");
@@ -2765,7 +3327,7 @@ const updateSubordinateVisibility = () => {
     if (inputs.u_sub_nv) inputs.u_sub_nv.checked = false;
   }
   calculate();
-};
+}
 
 const toggleAdminMode = () => {
   const adminCards = document.querySelectorAll(".admin-only-card");
@@ -3370,10 +3932,10 @@ window.renderAgriDashboard = () => {
   const max_direct = parseFloat(document.getElementById("a_agri_max_direct")?.value) || 0;
   const max_indirect = parseFloat(document.getElementById("a_agri_max_indirect")?.value) || 0;
 
-  const role_name_nv = document.getElementById("role_name_nv")?.value || "Nhân viên";
-  const role_name_ql = document.getElementById("role_name_ql")?.value || "Quản lý";
-  const role_name_gd = document.getElementById("role_name_gd")?.value || "Giám đốc";
-  const role_name_tgd = document.getElementById("role_name_tgd")?.value || "Tổng Giám đốc";
+  const role_name_nv = window.roleNames.nv || document.getElementById("role_name_nv")?.value || "Nhân viên";
+  const role_name_ql = window.roleNames.ql || document.getElementById("role_name_ql")?.value || "Quản lý";
+  const role_name_gd = window.roleNames.gd || document.getElementById("role_name_gd")?.value || "Giám đốc";
+  const role_name_tgd = window.roleNames.tgd || document.getElementById("role_name_tgd")?.value || "Tổng Giám đốc";
 
   // Base calculation amount (Calculated directly on promotional price)
   const baseAmount = totalPromoVal;
@@ -3625,7 +4187,14 @@ const initAgriCalculator = () => {
 
   if (selectRank) {
     selectRank.addEventListener("change", (e) => {
-      agriState.rank = e.target.value;
+      const val = e.target.value;
+      agriState.rank = val;
+      if (inputs.u_rank && inputs.u_rank.value !== val) {
+          inputs.u_rank.value = val;
+          if (typeof updateSubordinateVisibility === 'function') {
+              updateSubordinateVisibility();
+          }
+      }
       window.renderAgriDashboard();
     });
   }
