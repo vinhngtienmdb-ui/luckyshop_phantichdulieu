@@ -2647,6 +2647,16 @@ const formatNumberTable = (num) =>
 
 let lastCalculatedBreakEvenDay = null;
 
+// Debounce helper to prevent performance lag during rapid typing
+const debounce = (func, wait) => {
+  let timeout;
+  return function (...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+};
+
 const calculate = () => {
   // Read Table A Inputs
   const priceStr = inputs.p_price.value.replace(/\./g, "");
@@ -3346,10 +3356,12 @@ const toggleAdminMode = () => {
   calculate();
 };
 
+const debouncedCalculate = debounce(calculate, 150);
+
 // Add event listeners to all inputs to trigger recalculation
 Object.values(inputs).forEach((input) => {
   if (input && input.tagName) {
-    input.addEventListener("input", calculate);
+    input.addEventListener("input", debouncedCalculate);
     if (input.type === "checkbox" || input.type === "radio") {
       input.addEventListener("change", calculate);
     }
@@ -3380,7 +3392,7 @@ if (inputs.p_price) {
     } else {
       e.target.value = "";
     }
-    calculate();
+    debouncedCalculate();
   });
 }
 
@@ -3399,7 +3411,7 @@ if (inputs.p_calcMonths) {
     if (inputs.p_calcDays) {
       inputs.p_calcDays.value = days;
     }
-    calculate();
+    debouncedCalculate();
   });
 }
 
@@ -3414,7 +3426,7 @@ if (inputs.p_calcDays) {
         inputs.p_calcMonths.value = Math.round(days / 30);
       }
     }
-    calculate();
+    debouncedCalculate();
   });
 }
 
@@ -3426,7 +3438,7 @@ if (inputs.p_self_resell_amount) {
     } else {
       e.target.value = "0";
     }
-    calculate();
+    debouncedCalculate();
   });
 }
 
@@ -4086,6 +4098,8 @@ const initAgriCalculator = () => {
 
   if (!selectProduct) return;
 
+  const debouncedRenderAgriDashboard = debounce(window.renderAgriDashboard, 150);
+
   // Handle product selection change
   selectProduct.addEventListener("change", (e) => {
     agriState.selectedProductId = e.target.value;
@@ -4107,7 +4121,7 @@ const initAgriCalculator = () => {
       callback(numVal);
       // Format with thousands separator
       e.target.value = new Intl.NumberFormat("vi-VN").format(numVal);
-      window.renderAgriDashboard();
+      debouncedRenderAgriDashboard();
     });
   };
 
@@ -4143,7 +4157,7 @@ const initAgriCalculator = () => {
       if (agriState.selectedProductId === "custom") {
         agriState.customProduct.bulkBuy = val;
       }
-      window.renderAgriDashboard();
+      debouncedRenderAgriDashboard();
     });
   }
 
@@ -4153,14 +4167,14 @@ const initAgriCalculator = () => {
       if (agriState.selectedProductId === "custom") {
         agriState.customProduct.bulkGift = val;
       }
-      window.renderAgriDashboard();
+      debouncedRenderAgriDashboard();
     });
   }
 
   if (inputQty) {
     inputQty.addEventListener("input", (e) => {
       agriState.qty = Math.max(1, parseInt(e.target.value, 10) || 1);
-      window.renderAgriDashboard();
+      debouncedRenderAgriDashboard();
     });
   }
 
@@ -4174,7 +4188,7 @@ const initAgriCalculator = () => {
   if (inputResaleFeePercent) {
     inputResaleFeePercent.addEventListener("input", (e) => {
       agriState.resaleFeePercent = Math.max(0, parseInt(e.target.value, 10) || 0);
-      window.renderAgriDashboard();
+      debouncedRenderAgriDashboard();
     });
   }
 
